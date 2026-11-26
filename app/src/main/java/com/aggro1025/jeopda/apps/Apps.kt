@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -31,32 +32,72 @@ enum class BuiltIn(val slot: Int, val label: String) {
 object Apps {
 
     fun launchBuiltIn(context: Context, item: BuiltIn) {
-        val intent = when (item) {
-            BuiltIn.PHONE -> defaultPackageLaunch(context, defaultDialerPackage(context))
-                ?: Intent(Intent.ACTION_DIAL)
-            BuiltIn.MESSAGES -> defaultPackageLaunch(context, Telephony.Sms.getDefaultSmsPackage(context))
-                ?: Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MESSAGING)
-            BuiltIn.CONTACTS -> Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CONTACTS)
-            BuiltIn.ALARM -> Intent(AlarmClock.ACTION_SHOW_ALARMS)
-            BuiltIn.CAMERA -> Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+        // 메뉴 아이콘과 같은 앱이 열리도록, 찾은 패키지로 연다
+        val pkg = builtInPackage(context, item)
+        val generic = genericIntent(item)
+        // 같은 패키지에 전화·연락처가 함께 있는 기기도 있으므로, 그 기능을 하는 화면(액티비티)을 정확히 지정한다
+        val target = pkg?.let { p ->
+            context.packageManager.queryIntentActivities(generic, 0)
+                .firstOrNull { it.activityInfo.packageName == p }
+                ?.activityInfo
+        }
+        val intent = if (target != null) {
+            // 앱 종류로 찾는 인텐트(문자·연락처)는 찾은 화면을 일반 실행으로 연다
+            val base = if (generic.selector != null) Intent(Intent.ACTION_MAIN) else Intent(generic)
+            base.setClassName(target.packageName, target.name)
+        } else {
+            pkg?.let { context.packageManager.getLaunchIntentForPackage(it) } ?: generic
         }
         start(context, intent)
     }
 
-    /** 메뉴 아이콘용: 각 고정 항목을 실제로 여는 앱의 패키지 */
+    private fun genericIntent(item: BuiltIn): Intent = when (item) {
+        BuiltIn.PHONE -> Intent(Intent.ACTION_DIAL)
+        BuiltIn.MESSAGES -> Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MESSAGING)
+        BuiltIn.CONTACTS -> Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CONTACTS)
+        BuiltIn.ALARM -> Intent(AlarmClock.ACTION_SHOW_ALARMS)
+        BuiltIn.CAMERA -> Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+    }
+
+    /**
+     * 메뉴 아이콘용: 각 고정 항목을 여는 실제 앱의 패키지.
+     * 1) 기기 기본 앱 → 2) 그 기능을 하는 앱 중 시스템 앱(제조사 기본 앱) → 3) 알려진 기본 앱 이름 순으로 찾는다.
+     */
     fun builtInPackage(context: Context, item: BuiltIn): String? {
         val pm = context.packageManager
-        fun resolve(intent: Intent): String? =
-            pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
-                ?.takeIf { it != "android" } // 앱 선택 창이면 아이콘을 정할 수 없음
-        return when (item) {
+        val intent = genericIntent(item)
+
+        val default = when (item) {
             BuiltIn.PHONE -> defaultDialerPackage(context)
             BuiltIn.MESSAGES -> Telephony.Sms.getDefaultSmsPackage(context)
-            BuiltIn.CONTACTS -> resolve(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CONTACTS))
-            BuiltIn.ALARM -> resolve(Intent(AlarmClock.ACTION_SHOW_ALARMS))
-            BuiltIn.CAMERA -> resolve(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
+            else -> pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
         }
+        // "android"는 앱 선택 창이라 아이콘을 정할 수 없음
+        if (default != null && default != "android" && isInstalled(pm, default)) return default
+
+        val candidates = pm.queryIntentActivities(intent, 0).map { it.activityInfo }
+        candidates.firstOrNull { it.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0 }
+            ?.let { return it.packageName }
+        candidates.firstOrNull()?.let { return it.packageName }
+
+        return KNOWN_PACKAGES[item]?.firstOrNull { isInstalled(pm, it) }
     }
+
+    private fun isInstalled(pm: PackageManager, pkg: String): Boolean = try {
+        pm.getApplicationInfo(pkg, 0)
+        true
+    } catch (e: PackageManager.NameNotFoundException) {
+        false
+    }
+
+    /** 삼성·구글 기본 앱 이름 (마지막 대안) */
+    private val KNOWN_PACKAGES = mapOf(
+        BuiltIn.PHONE to listOf("com.samsung.android.dialer", "com.google.android.dialer", "com.android.dialer"),
+        BuiltIn.MESSAGES to listOf("com.samsung.android.messaging", "com.google.android.apps.messaging"),
+        BuiltIn.CONTACTS to listOf("com.samsung.android.app.contacts", "com.google.android.contacts", "com.android.contacts"),
+        BuiltIn.ALARM to listOf("com.sec.android.app.clockpackage", "com.google.android.deskclock", "com.android.deskclock"),
+        BuiltIn.CAMERA to listOf("com.sec.android.app.camera", "com.google.android.GoogleCamera", "com.android.camera2"),
+    )
 
     /** 다이얼러에 번호를 채워서 연다. 통화 버튼은 사용자가 누른다 (긴급번호 포함 동일) */
     fun dial(context: Context, number: String) {

@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -286,7 +287,7 @@ private fun MenuCell(entry: MenuEntry, selected: Boolean, modifier: Modifier, on
     }
 }
 
-/** 실제 앱 아이콘. 없으면(미리보기·빈 칸) 색 사각형 + 첫 글자 */
+/** 실제 앱 아이콘. 읽지 못하면(미리보기, 기본 앱을 못 찾은 경우) 색 사각형 + 기호 */
 @Composable
 private fun MenuIcon(entry: MenuEntry) {
     val size = 46.dp
@@ -306,7 +307,14 @@ private fun MenuIcon(entry: MenuEntry) {
                     .clip(RoundedCornerShape(12.dp))
                     .background(Brush.linearGradient(colors)),
                 contentAlignment = Alignment.Center,
-            ) { Text(entry.label.take(1), style = scrText(20.sp, weight = FontWeight.Bold)) }
+            ) {
+                Icon(
+                    Symbols.forSlot(entry.slot),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(26.dp),
+                )
+            }
         }
     }
 }
@@ -317,8 +325,8 @@ private val FALLBACK_COLORS = listOf(
     listOf(Color(0xFF64B5F6), Color(0xFF1E6FD9)),
     listOf(Color(0xFFFF8A65), Color(0xFFE0452B)),
     listOf(Color(0xFFB0BEC5), Color(0xFF607D8B)),
-    listOf(Color(0xFFFFE066), Color(0xFF3C1E1E)),
-    listOf(Color(0xFF7CE38B), Color(0xFF03C75A)),
+    listOf(Color(0xFF9575CD), Color(0xFF5E35B1)),
+    listOf(Color(0xFF4DD0E1), Color(0xFF00838F)),
 )
 
 // ---------------- 목록 행 (해제 방법) ----------------
