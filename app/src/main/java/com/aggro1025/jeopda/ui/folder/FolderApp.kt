@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -41,6 +42,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.tooling.preview.Preview
+import com.aggro1025.jeopda.ui.JeopdaTheme
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -246,6 +250,7 @@ private data class Battery(val percent: Int, val charging: Boolean)
 private fun rememberBattery(): Battery {
     val context = LocalContext.current
     var state by remember { mutableStateOf(Battery(0, false)) }
+    if (LocalInspectionMode.current) return Battery(87, false) // Android Studio 미리보기용
     DisposableEffect(context) {
         fun read(i: Intent?): Battery? {
             i ?: return null
@@ -518,3 +523,45 @@ private fun Button(text: String, modifier: Modifier, primary: Boolean, onClick: 
         Text(text, style = LcdText.copy(fontSize = 16.sp, color = if (primary) Lcd.screen else Lcd.text))
     }
 }
+
+// ---------------- Android Studio 미리보기 ----------------
+// 파일을 열고 오른쪽 위 "Split" 또는 "Design"을 누르면 기기 없이 화면을 볼 수 있다.
+
+internal object PreviewActions : FolderActions {
+    override fun openMenuSlot(slot: Int) = Unit
+    override fun dial(number: String) = Unit
+    override fun openSettings() = Unit
+    override fun isFreeAvailable() = true
+    override fun unlock(minutes: Int, reason: String, method: UnlockMethod) = Unit
+}
+
+internal val previewMenu = listOf(
+    MenuEntry(1, "전화"), MenuEntry(2, "문자"), MenuEntry(3, "연락처"),
+    MenuEntry(4, "알람"), MenuEntry(5, "카메라"), MenuEntry(6, "카카오톡"),
+    MenuEntry(7, "네이버 지도"), MenuEntry(8, "비어 있음", empty = true), MenuEntry(9, "비어 있음", empty = true),
+)
+
+@Composable
+internal fun PreviewScreen(screen: Screen) {
+    CompositionLocalProvider(LocalInspectionMode provides true) {
+        JeopdaTheme {
+            FolderApp(screen, {}, previewMenu, PreviewActions, KeyRouter(), devUnlock = true)
+        }
+    }
+}
+
+@Preview(name = "1. 홈", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
+@Composable
+private fun HomePreview() = PreviewScreen(Screen.Home)
+
+@Preview(name = "2. 메뉴", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
+@Composable
+private fun MenuPreview() = PreviewScreen(Screen.Menu(selected = 6))
+
+@Preview(name = "3. 해제 방법", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
+@Composable
+private fun UnlockMethodPreview() = PreviewScreen(Screen.UnlockMethod())
+
+@Preview(name = "4. 시간·사유 입력", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
+@Composable
+private fun UnlockInputPreview() = PreviewScreen(Screen.UnlockInput(UnlockMethod.FREE))
