@@ -26,8 +26,14 @@ class ScreenshotTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private fun shoot(name: String, screen: Screen) {
-        compose.setContent { PreviewScreen(screen) }
+    private fun shoot(name: String, screen: Screen) = shootContent(name) { PreviewScreen(screen) }
+
+    private fun shootContent(name: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalInspectionMode provides true) {
+                JeopdaTheme { content() }
+            }
+        }
         compose.waitForIdle()
         compose.mainClock.advanceTimeBy(500)
         val view = compose.activity.window.decorView
@@ -41,4 +47,10 @@ class ScreenshotTest {
     @Test fun menu() = shoot("2_menu", Screen.Menu(selected = 6))
     @Test fun unlockMethod() = shoot("3_unlock_method", Screen.UnlockMethod())
     @Test fun unlockInput() = shoot("4_unlock_input", Screen.UnlockInput(UnlockMethod.FREE))
+
+    // 시안: 폴더폰 화면 안의 전화·연락처
+    @Test fun mockDialer() = shootContent("5_mock_dialer") { com.aggro1025.jeopda.ui.folder.MockDialer() }
+    @Test fun mockContacts() = shootContent("6_mock_contacts") { com.aggro1025.jeopda.ui.folder.MockContacts() }
+    @Test fun mockContactsFiltered() = shootContent("7_mock_contacts_filtered") { com.aggro1025.jeopda.ui.folder.MockContactsFiltered() }
 }
+
