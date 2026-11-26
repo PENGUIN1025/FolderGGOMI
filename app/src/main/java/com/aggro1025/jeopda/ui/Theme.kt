@@ -28,6 +28,20 @@ object Lcd {
     val warn = Color(0xFFF2D0A0)
 }
 
+/** 화면(디스플레이) 팔레트: 2000년대 컬러 폴더폰 느낌의 어두운 남색 배경화면 + 흰 글자 */
+object Scr {
+    val wallTop = Color(0xFF1C2E52)
+    val wallBottom = Color(0xFF060A13)
+    val text = Color(0xFFF4F7FB)
+    val dim = Color(0xFF9FB0C8)
+    val faint = Color(0xFF5C6B82)
+    val accent = Color(0xFF5AB0FF)
+    val accentDeep = Color(0xFF2A6FD6)
+    val warn = Color(0xFFFFC98A)
+    val panel = Color(0x33FFFFFF)
+    val statusBg = Color(0x66000000)
+}
+
 val Galmuri = FontFamily(
     Font(R.font.galmuri11, FontWeight.Normal),
     Font(R.font.galmuri11_bold, FontWeight.Bold),

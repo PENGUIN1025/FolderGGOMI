@@ -43,6 +43,21 @@ object Apps {
         start(context, intent)
     }
 
+    /** 메뉴 아이콘용: 각 고정 항목을 실제로 여는 앱의 패키지 */
+    fun builtInPackage(context: Context, item: BuiltIn): String? {
+        val pm = context.packageManager
+        fun resolve(intent: Intent): String? =
+            pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
+                ?.takeIf { it != "android" } // 앱 선택 창이면 아이콘을 정할 수 없음
+        return when (item) {
+            BuiltIn.PHONE -> defaultDialerPackage(context)
+            BuiltIn.MESSAGES -> Telephony.Sms.getDefaultSmsPackage(context)
+            BuiltIn.CONTACTS -> resolve(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CONTACTS))
+            BuiltIn.ALARM -> resolve(Intent(AlarmClock.ACTION_SHOW_ALARMS))
+            BuiltIn.CAMERA -> resolve(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
+        }
+    }
+
     /** 다이얼러에 번호를 채워서 연다. 통화 버튼은 사용자가 누른다 (긴급번호 포함 동일) */
     fun dial(context: Context, number: String) {
         val uri = if (number.isEmpty()) null else Uri.fromParts("tel", number, null)

@@ -14,10 +14,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.aggro1025.jeopda.apps.Apps
 import com.aggro1025.jeopda.apps.BuiltIn
 import com.aggro1025.jeopda.data.AppPrefs
@@ -67,6 +73,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             JeopdaTheme {
+                LaunchedEffect(mode) { applySystemBars(mode == Mode.FOLDER) }
                 when (mode) {
                     Mode.FOLDER -> FolderApp(
                         screen = screen,
@@ -170,12 +177,24 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun buildMenu(): List<MenuEntry> {
-        val builtIns = BuiltIn.entries.map { MenuEntry(it.slot, it.label) }
+        fun icon(pkg: String?) = pkg?.let { Apps.entry(this, it)?.icon }?.toBitmap(144, 144)?.asImageBitmap()
+        val builtIns = BuiltIn.entries.map { MenuEntry(it.slot, it.label, icon = icon(Apps.builtInPackage(this, it))) }
         val user = AppPrefs.USER_SLOTS.map { slot ->
             val app = prefs.slotPackage(slot)?.let { Apps.entry(this, it) }
-            if (app != null) MenuEntry(slot, app.label) else MenuEntry(slot, "비어 있음", empty = true)
+            if (app != null) {
+                MenuEntry(slot, app.label, icon = app.icon?.toBitmap(144, 144)?.asImageBitmap())
+            } else {
+                MenuEntry(slot, "비어 있음", empty = true)
+            }
         }
         return builtIns + user
+    }
+
+    /** 폴더폰 모드에서는 화면 안에 자체 상태 표시줄이 있으므로 시스템 상태 표시줄을 숨긴다 (위에서 쓸어내리면 잠깐 보임) */
+    private fun applySystemBars(folder: Boolean) {
+        val c = WindowCompat.getInsetsController(window, window.decorView)
+        c.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (folder) c.hide(WindowInsetsCompat.Type.statusBars()) else c.show(WindowInsetsCompat.Type.statusBars())
     }
 
     private val actions = object : FolderActions {
