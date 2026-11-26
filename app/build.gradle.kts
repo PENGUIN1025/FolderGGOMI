@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.aggro1025.jeopda"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.aggro1025.jeopda"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
     }

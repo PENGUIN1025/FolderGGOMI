@@ -8,3 +8,9 @@ build/
 .externalNativeBuild
 .cxx
 .kotlin/
+
+# 서명 키 (절대 저장소에 올리지 않는다)
+*.jks
+*.keystore
+keystore.properties
+/app/release/
