@@ -7,7 +7,8 @@
 | 항목 | 결정 |
 |---|---|
 | 패키지명 | `com.aggro1025.jeopda` |
-| 최소 안드로이드 버전 | minSdk 26 (Android 8.0), targetSdk 35 |
+| 최소 안드로이드 버전 | minSdk 26 (Android 8.0), targetSdk 36 (Google Play 요구사항) |
+| 배포 | Play Console 내부 테스트 (docs/play-console.md) |
 | UI 기술 | Kotlin + Jetpack Compose |
 | 개발·테스트 | 맥 Android Studio, 실제 기기 S23 Ultra |
 
