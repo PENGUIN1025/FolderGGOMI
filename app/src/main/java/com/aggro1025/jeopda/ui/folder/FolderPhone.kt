@@ -65,6 +65,9 @@ sealed interface Screen {
     data class Menu(val selected: Int = 1) : Screen
     data class UnlockMethod(val selected: Int = 0) : Screen
     data class UnlockInput(val method: com.aggro1025.jeopda.session.UnlockMethod) : Screen
+    data class Dialer(val number: String = "") : Screen
+    /** keys: 초성 찾기로 누른 숫자들, selected: 목록에서 고른 줄 */
+    data class Contacts(val keys: String = "", val selected: Int = 0) : Screen
 }
 
 data class SoftLabels(val left: String = "", val center: String = "", val right: String = "")

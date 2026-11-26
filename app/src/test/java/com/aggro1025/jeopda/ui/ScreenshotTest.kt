@@ -48,9 +48,9 @@ class ScreenshotTest {
     @Test fun unlockMethod() = shoot("3_unlock_method", Screen.UnlockMethod())
     @Test fun unlockInput() = shoot("4_unlock_input", Screen.UnlockInput(UnlockMethod.FREE))
 
-    // 시안: 폴더폰 화면 안의 전화·연락처
-    @Test fun mockDialer() = shootContent("5_mock_dialer") { com.aggro1025.jeopda.ui.folder.MockDialer() }
-    @Test fun mockContacts() = shootContent("6_mock_contacts") { com.aggro1025.jeopda.ui.folder.MockContacts() }
-    @Test fun mockContactsFiltered() = shootContent("7_mock_contacts_filtered") { com.aggro1025.jeopda.ui.folder.MockContactsFiltered() }
+    // 폴더폰 화면 안의 전화·연락처
+    @Test fun dialer() = shoot("5_dialer", Screen.Dialer("01012345678"))
+    @Test fun contacts() = shoot("6_contacts", Screen.Contacts(selected = 5))
+    @Test fun contactsFiltered() = shoot("7_contacts_filtered", Screen.Contacts(keys = "4", selected = 1))
 }
 

@@ -119,6 +119,14 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
     val exactOk = remember(tick) { SmartSession.canScheduleExact(context) }
+    val contactsGranted = remember(tick) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
+    }
+    val callGranted = remember(tick) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED
+    }
+    val contactsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
+    val callLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
 
     val roleLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { tick++ }
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
@@ -161,6 +169,16 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
                     ok = notifGranted,
                 ) { notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
             }
+            PermissionRow(
+                title = "연락처",
+                desc = "연락처를 폴더폰 화면에 보여주기 위해 필요해요. 기기 밖으로 보내지 않아요",
+                ok = contactsGranted,
+            ) { contactsLauncher.launch(Manifest.permission.READ_CONTACTS) }
+            PermissionRow(
+                title = "전화 걸기",
+                desc = "번호를 누르면 바로 전화를 걸어요 (끄면 전화 앱에 번호만 채워 줘요)",
+                ok = callGranted,
+            ) { callLauncher.launch(Manifest.permission.CALL_PHONE) }
             if (Build.VERSION.SDK_INT >= 31) {
                 PermissionRow(
                     title = "알람 및 리마인더",
@@ -197,7 +215,10 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
 
             // ---- 메뉴 ----
             Section("폴더폰 메뉴")
-            BuiltIn.entries.forEach { Body("${it.slot}  ${it.label}  (기본 앱)") }
+            BuiltIn.entries.forEach {
+                val where = if (it == BuiltIn.PHONE || it == BuiltIn.CONTACTS) "폴더폰 화면" else "기본 앱"
+                Body("${it.slot}  ${it.label}  ($where)")
+            }
             AppPrefs.USER_SLOTS.forEach { slot ->
                 val pkg = remember(tick, pickSlot) { prefs.slotPackage(slot) }
                 val label = remember(pkg) { pkg?.let { Apps.entry(context, it)?.label } }

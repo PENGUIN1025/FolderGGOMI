@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aggro1025.jeopda.data.Contact
 import com.aggro1025.jeopda.data.UnlockRules
 import com.aggro1025.jeopda.data.UnlockRules.ReasonCheck
 import com.aggro1025.jeopda.session.UnlockMethod
@@ -72,7 +73,12 @@ data class MenuEntry(
 
 interface FolderActions {
     fun openMenuSlot(slot: Int)
-    fun dial(number: String)
+    /** 바로 전화 걸기 (긴급번호는 기본 전화 앱으로 넘김) */
+    fun call(number: String)
+    /** 기본 문자 앱의 작성 화면으로 넘김 */
+    fun sms(number: String)
+    fun hasContactsPermission(): Boolean
+    fun requestContactsPermission()
     fun openSettings()
     fun isFreeAvailable(): Boolean
     fun unlock(minutes: Int, reason: String, method: UnlockMethod)
@@ -90,6 +96,7 @@ fun FolderApp(
     actions: FolderActions,
     router: KeyRouter,
     devUnlock: Boolean,
+    contacts: List<Contact> = emptyList(),
 ) {
     when (screen) {
         Screen.Home -> {
@@ -98,11 +105,11 @@ fun FolderApp(
                     k == FolderKey.SOFT_LEFT -> onScreen(Screen.UnlockMethod())
                     k == FolderKey.OK -> onScreen(Screen.Menu())
                     k == FolderKey.SOFT_RIGHT -> actions.openSettings()
-                    k == FolderKey.CALL -> actions.dial("")
-                    k.char != null -> actions.dial(k.char.toString())
+                    k == FolderKey.CALL -> onScreen(Screen.Dialer())
+                    k.char != null -> onScreen(Screen.Dialer(k.char.toString()))
                 }
             }
-            Bind(router, onKey)
+            BindKeys(router, onKey)
             FolderPhone(null, SoftLabels("해제", "메뉴", "설정"), onKey) { HomeDisplay(actions.isFreeAvailable()) }
         }
 
@@ -118,10 +125,10 @@ fun FolderApp(
                     k == FolderKey.DOWN -> onScreen(Screen.Menu(if (sel < 7) sel + 3 else sel - 6))
                     k == FolderKey.LEFT -> onScreen(Screen.Menu(if (sel == 1) 9 else sel - 1))
                     k == FolderKey.RIGHT -> onScreen(Screen.Menu(if (sel == 9) 1 else sel + 1))
-                    k == FolderKey.CALL -> actions.dial("")
+                    k == FolderKey.CALL -> onScreen(Screen.Dialer())
                 }
             }
-            Bind(router, onKey)
+            BindKeys(router, onKey)
             FolderPhone("메뉴", SoftLabels("", "열기", "뒤로"), onKey) {
                 MenuDisplay(menu, sel, onTap = { actions.openMenuSlot(it) })
             }
@@ -151,7 +158,7 @@ fun FolderApp(
                     k == FolderKey.SOFT_RIGHT || k == FolderKey.END -> onScreen(Screen.Home)
                 }
             }
-            Bind(router, onKey)
+            BindKeys(router, onKey)
             FolderPhone("해제 방법", SoftLabels("", "선택", "뒤로"), onKey) {
                 Column(Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp)) {
                     options.forEachIndexed { i, o ->
@@ -169,12 +176,14 @@ fun FolderApp(
         }
 
         is Screen.UnlockInput -> UnlockInputScreen(screen.method, onScreen, actions, router)
+        is Screen.Dialer -> DialerScreen(screen.number, contacts, onScreen, actions, router)
+        is Screen.Contacts -> ContactsScreen(screen, contacts, onScreen, actions, router)
     }
 }
 
 /** 지금 화면의 키 처리 함수를 물리 키 입력에도 연결 */
 @Composable
-private fun Bind(router: KeyRouter, onKey: (FolderKey) -> Unit) {
+internal fun BindKeys(router: KeyRouter, onKey: (FolderKey) -> Unit) {
     SideEffect { router.handler = onKey }
 }
 
@@ -412,7 +421,7 @@ private fun UnlockInputScreen(
             else -> Unit
         }
     }
-    Bind(router, onKey)
+    BindKeys(router, onKey)
 
     FolderPhone("스마트폰 모드 해제 · ${method.label}", SoftLabels("해제", "", "취소"), onKey) {
         Column(
@@ -564,7 +573,10 @@ private fun Button(text: String, modifier: Modifier, primary: Boolean, onClick: 
 
 internal object PreviewActions : FolderActions {
     override fun openMenuSlot(slot: Int) = Unit
-    override fun dial(number: String) = Unit
+    override fun call(number: String) = Unit
+    override fun sms(number: String) = Unit
+    override fun hasContactsPermission() = true
+    override fun requestContactsPermission() = Unit
     override fun openSettings() = Unit
     override fun isFreeAvailable() = true
     override fun unlock(minutes: Int, reason: String, method: UnlockMethod) = Unit
@@ -580,7 +592,7 @@ internal val previewMenu = listOf(
 internal fun PreviewScreen(screen: Screen) {
     CompositionLocalProvider(LocalInspectionMode provides true) {
         JeopdaTheme {
-            FolderApp(screen, {}, previewMenu, PreviewActions, KeyRouter(), devUnlock = true)
+            FolderApp(screen, {}, previewMenu, PreviewActions, KeyRouter(), devUnlock = true, contacts = previewContacts)
         }
     }
 }
@@ -600,3 +612,11 @@ private fun UnlockMethodPreview() = PreviewScreen(Screen.UnlockMethod())
 @Preview(name = "4. 시간·사유 입력", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
 @Composable
 private fun UnlockInputPreview() = PreviewScreen(Screen.UnlockInput(UnlockMethod.FREE))
+
+@Preview(name = "5. 전화", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
+@Composable
+private fun DialerPreview() = PreviewScreen(Screen.Dialer("01012345678"))
+
+@Preview(name = "6. 연락처", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
+@Composable
+private fun ContactsPreview() = PreviewScreen(Screen.Contacts(selected = 5))

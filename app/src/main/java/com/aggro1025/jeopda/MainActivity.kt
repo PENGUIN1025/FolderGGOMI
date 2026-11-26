@@ -1,9 +1,16 @@
 package com.aggro1025.jeopda
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.telephony.PhoneNumberUtils
+import android.telephony.TelephonyManager
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.widget.Toast
@@ -11,6 +18,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,13 +28,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import com.aggro1025.jeopda.apps.Apps
 import com.aggro1025.jeopda.apps.BuiltIn
 import com.aggro1025.jeopda.data.AppPrefs
+import com.aggro1025.jeopda.data.Contact
+import com.aggro1025.jeopda.data.ContactsRepo
 import com.aggro1025.jeopda.session.SmartSession
 import com.aggro1025.jeopda.session.UnlockMethod
 import com.aggro1025.jeopda.ui.JeopdaTheme
@@ -39,6 +51,9 @@ import com.aggro1025.jeopda.ui.folder.MenuEntry
 import com.aggro1025.jeopda.ui.folder.Screen
 import com.aggro1025.jeopda.ui.smart.SmartDrawer
 import com.aggro1025.jeopda.ui.smart.SetupPending
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 홈(런처) 화면.
@@ -55,7 +70,26 @@ class MainActivity : ComponentActivity() {
     private var mode by mutableStateOf(Mode.FOLDER)
     private var screen by mutableStateOf<Screen>(Screen.Home)
     private var menu by mutableStateOf<List<MenuEntry>>(emptyList())
+    private var contacts by mutableStateOf<List<Contact>>(emptyList())
+    private var contactsPermitted by mutableStateOf(false)
     private val relayTimes = ArrayDeque<Long>()
+
+    /** 전화 걸기 권한을 묻는 동안 걸려던 번호 */
+    private var pendingCall: String? = null
+    private var contactsAskedOnce = false
+
+    private val callPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val number = pendingCall ?: return@registerForActivityResult
+        pendingCall = null
+        // 거절해도 전화는 쓸 수 있게: 기본 전화 앱에 번호를 채워서 연다
+        if (granted) placeCall(number) else Apps.dial(this, number)
+    }
+
+    private val contactsPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        contactsAskedOnce = true
+        contactsPermitted = granted
+        if (granted) reloadContacts()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,7 +100,12 @@ class MainActivity : ComponentActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (mode == Mode.FOLDER && screen != Screen.Home) {
-                    screen = if (screen is Screen.UnlockInput) Screen.UnlockMethod() else Screen.Home
+                    screen = when (val sc = screen) {
+                        is Screen.UnlockInput -> Screen.UnlockMethod()
+                        is Screen.Contacts -> if (sc.keys.isNotEmpty()) Screen.Contacts(sc.keys.dropLast(1)) else Screen.Home
+                        is Screen.Dialer -> if (sc.number.isNotEmpty()) Screen.Dialer(sc.number.dropLast(1)) else Screen.Home
+                        else -> Screen.Home
+                    }
                 }
             }
         })
@@ -82,6 +121,7 @@ class MainActivity : ComponentActivity() {
                         actions = actions,
                         router = router,
                         devUnlock = BuildConfig.DEBUG,
+                        contacts = contacts,
                     )
                     Mode.SETUP -> SetupPending(onOpen = { actions.openSettings() })
                     Mode.RELAY -> Box(Modifier.fillMaxSize().background(Lcd.body))
@@ -113,6 +153,41 @@ class MainActivity : ComponentActivity() {
         } else {
             mode = Mode.FOLDER
             menu = buildMenu()
+            reloadContacts()
+        }
+    }
+
+    /** 연락처를 백그라운드에서 다시 읽는다 (권한이 있을 때만) */
+    private fun reloadContacts() {
+        contactsPermitted = ContactsRepo.hasPermission(this)
+        if (!contactsPermitted) return
+        lifecycleScope.launch {
+            contacts = withContext(Dispatchers.IO) { runCatching { ContactsRepo.load(this@MainActivity) }.getOrDefault(emptyList()) }
+        }
+    }
+
+    private fun isEmergency(number: String): Boolean {
+        val d = number.filter { it.isDigit() }
+        if (d in KR_EMERGENCY) return true
+        return try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                getSystemService(TelephonyManager::class.java)?.isEmergencyNumber(d) == true
+            } else {
+                @Suppress("DEPRECATION")
+                PhoneNumberUtils.isEmergencyNumber(d)
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun placeCall(number: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_CALL, Uri.fromParts("tel", number, null)))
+        } catch (e: SecurityException) {
+            Apps.dial(this, number)
+        } catch (e: ActivityNotFoundException) {
+            Apps.dial(this, number)
         }
     }
 
@@ -200,6 +275,15 @@ class MainActivity : ComponentActivity() {
     private val actions = object : FolderActions {
         override fun openMenuSlot(slot: Int) {
             val builtIn = BuiltIn.entries.firstOrNull { it.slot == slot }
+            // 전화·연락처는 폴더폰 화면 안에서
+            if (builtIn == BuiltIn.PHONE) {
+                screen = Screen.Dialer()
+                return
+            }
+            if (builtIn == BuiltIn.CONTACTS) {
+                screen = Screen.Contacts()
+                return
+            }
             if (builtIn != null) {
                 Apps.launchBuiltIn(this@MainActivity, builtIn)
                 return
@@ -212,7 +296,44 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        override fun dial(number: String) = Apps.dial(this@MainActivity, number)
+        override fun call(number: String) {
+            val n = number.filter { it.isDigit() || it in "+*#" }
+            if (n.isEmpty()) return
+            when {
+                // 긴급번호는 안드로이드가 일반 앱의 바로 걸기를 막는다: 기본 전화 앱에 채워서 연다
+                isEmergency(n) -> Apps.dial(this@MainActivity, n)
+                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CALL_PHONE) ==
+                    PackageManager.PERMISSION_GRANTED -> placeCall(n)
+                else -> {
+                    pendingCall = n
+                    callPermission.launch(Manifest.permission.CALL_PHONE)
+                }
+            }
+        }
+
+        override fun sms(number: String) {
+            try {
+                startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", number, null)))
+            } catch (e: ActivityNotFoundException) {
+                Toast.makeText(this@MainActivity, "문자 앱을 찾을 수 없어요", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        override fun hasContactsPermission(): Boolean = contactsPermitted
+
+        override fun requestContactsPermission() {
+            val canAsk = !contactsAskedOnce ||
+                shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)
+            if (canAsk) {
+                contactsPermission.launch(Manifest.permission.READ_CONTACTS)
+            } else {
+                // "다시 묻지 않음" 상태: 앱 설정 화면에서 직접 켜도록 안내
+                Toast.makeText(this@MainActivity, "설정 > 권한에서 연락처를 허용해 주세요", Toast.LENGTH_LONG).show()
+                startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)),
+                )
+            }
+        }
 
         override fun openSettings() {
             startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
@@ -230,5 +351,8 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_RETURN_TO_FOLDER = "return_to_folder"
         private const val SAMSUNG_HOME = "com.sec.android.app.launcher"
+
+        /** 한국 긴급·신고 번호 (기기 판별이 실패해도 막히지 않게) */
+        private val KR_EMERGENCY = setOf("112", "119", "113", "117", "118", "122", "125", "111", "911")
     }
 }

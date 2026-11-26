@@ -9,12 +9,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.aggro1025.jeopda.ui.folder.FolderApp
 import com.aggro1025.jeopda.ui.folder.KeyRouter
 import com.aggro1025.jeopda.ui.folder.PreviewActions
 import com.aggro1025.jeopda.ui.folder.Screen
+import com.aggro1025.jeopda.ui.folder.previewContacts
 import com.aggro1025.jeopda.ui.folder.previewMenu
 import org.junit.Rule
 import org.junit.Test
@@ -34,9 +36,14 @@ class SoftKeyTest {
         compose.setContent {
             var screen by remember { mutableStateOf<Screen>(Screen.Home) }
             CompositionLocalProvider(LocalInspectionMode provides true) {
-                JeopdaTheme { FolderApp(screen, { screen = it }, previewMenu, PreviewActions, KeyRouter(), devUnlock = true) }
+                JeopdaTheme { FolderApp(screen, { screen = it }, previewMenu, PreviewActions, KeyRouter(), devUnlock = true, contacts = previewContacts) }
             }
         }
+        compose.mainClock.advanceTimeBy(100)
+    }
+
+    private fun tap(text: String) {
+        compose.onNodeWithText(text).performClick()
         compose.mainClock.advanceTimeBy(100)
     }
 
@@ -63,5 +70,30 @@ class SoftKeyTest {
         compose.onNodeWithText("확인").performClick()
         compose.mainClock.advanceTimeBy(100)
         compose.onNodeWithText("열기").assertIsDisplayed()
+    }
+
+    @Test
+    fun digitOnHomeOpensDialerWithThatDigit() {
+        launch()
+        tap("0")
+        tap("1")
+        compose.onNodeWithText("전화").assertIsDisplayed()
+        compose.onNodeWithText("01").assertIsDisplayed()
+        tap("지우기")
+        compose.onNodeWithText("01").assertDoesNotExist()
+    }
+
+    @Test
+    fun contactsFilterByChoseongKey() {
+        launch()
+        // 홈에서 통화 키(수화기 아이콘) → 다이얼러
+        compose.onNodeWithContentDescription("통화").performClick()
+        compose.mainClock.advanceTimeBy(100)
+        tap("연락처")
+        compose.onNodeWithText("엄마").assertIsDisplayed()
+        tap("4") // ㄱㅋ
+        compose.onNodeWithText("강민수").assertIsDisplayed()
+        compose.onNodeWithText("(4)", substring = true).assertIsDisplayed() // 찾기 칸 (키패드에도 ㄱㅋ 글자가 있어서 숫자로 확인)
+        compose.onNodeWithText("박서준").assertDoesNotExist()
     }
 }

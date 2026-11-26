@@ -10,6 +10,13 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- 종료 5분 전 알림을 정확한 시각에 (꺼져 있으면 부정확한 알람으로 대체) -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- 폴더폰 화면의 연락처 목록 (기기 안에서만 사용, 저장·전송 안 함) -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- 폴더폰 다이얼러에서 바로 전화 걸기 (긴급번호는 기본 전화 앱으로 넘김) -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <!-- 전화 기능이 없는 기기(태블릿)에서도 설치 가능하게 -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+
     <!-- 재부팅 후 남은 시간·알림 복구 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
