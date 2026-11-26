@@ -2,21 +2,30 @@ package com.aggro1025.jeopda.ui.folder
 
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,14 +33,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aggro1025.jeopda.ui.Galmuri
-import com.aggro1025.jeopda.ui.Lcd
 
 enum class FolderKey {
     SOFT_LEFT, SOFT_RIGHT, UP, DOWN, LEFT, RIGHT, OK, CALL, END,
@@ -63,99 +76,147 @@ enum class FolderKey {
     }
 }
 
-private val SUB_LABELS = mapOf(
-    2 to "ABC", 3 to "DEF", 4 to "GHI", 5 to "JKL",
-    6 to "MNO", 7 to "PQRS", 8 to "TUV", 9 to "WXYZ",
+/** 키패드 팔레트: 광택 있는 검은 통판 + 백라이트 글자 */
+private object Kp {
+    val plateTop = Color(0xFF1E2228)
+    val plateBottom = Color(0xFF0B0D10)
+    val rim = Color(0xFF353A42)
+    val divider = Color(0xFF2A2F37)
+    val glow = Color(0xFFEAF4FF)
+    val sub = Color(0xFF8CC8FF)
+    val soft = Color(0xFF4DA8FF)
+    val call = Color(0xFF3DDC84)
+    val end = Color(0xFFFF4D4D)
+    val pressed = Color(0x1FBFE0FF)
+}
+
+/** 천지인 배치 (장식용. 실제 한글 입력은 시스템 키보드) */
+private val JAMO = mapOf(
+    1 to "ㅣ", 2 to "ㆍ", 3 to "ㅡ",
+    4 to "ㄱㅋ", 5 to "ㄴㄹ", 6 to "ㄷㅌ",
+    7 to "ㅂㅍ", 8 to "ㅅㅎ", 9 to "ㅈㅊ",
+    0 to "ㅇㅁ",
 )
 
-/** 화면 아래쪽 폴더폰 버튼부: 소프트키·방향키·통화/종료 + 숫자 12키 */
+private val Backlit = Shadow(Color(0x995AB0FF), Offset.Zero, 10f)
+
+/** 화면 아래쪽 폴더폰 버튼부: 검은 통판 위에 소프트키·방향키·통화/종료 + 숫자 12키 */
 @Composable
 fun Keypad(onKey: (FolderKey) -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
+    Box(
+        modifier
             .fillMaxSize()
-            .background(Lcd.body)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(start = 10.dp, end = 10.dp, bottom = 6.dp),
     ) {
-        // 네비게이션부 (전체 높이의 약 36%)
-        Row(Modifier.fillMaxWidth().weight(0.36f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                KeyButton(FolderKey.SOFT_LEFT, onKey, Modifier.weight(1f)) { Bar() }
-                KeyButton(FolderKey.CALL, onKey, Modifier.weight(1f), bg = Lcd.call) { KeyLabel("통화") }
-            }
-            DPad(onKey, Modifier.weight(1.25f).fillMaxHeight())
-            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                KeyButton(FolderKey.SOFT_RIGHT, onKey, Modifier.weight(1f)) { Bar() }
-                KeyButton(FolderKey.END, onKey, Modifier.weight(1f), bg = Lcd.end) { KeyLabel("종료") }
-            }
-        }
-        // 숫자부
-        val rows = listOf(
-            listOf(FolderKey.D1, FolderKey.D2, FolderKey.D3),
-            listOf(FolderKey.D4, FolderKey.D5, FolderKey.D6),
-            listOf(FolderKey.D7, FolderKey.D8, FolderKey.D9),
-            listOf(FolderKey.STAR, FolderKey.D0, FolderKey.HASH),
-        )
-        Column(Modifier.fillMaxWidth().weight(0.64f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            rows.forEach { row ->
-                Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { k -> NumberKey(k, onKey) }
-                }
-            }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Brush.verticalGradient(listOf(Kp.plateTop, Kp.plateBottom)))
+                .border(1.dp, Kp.rim, RoundedCornerShape(22.dp)),
+        ) {
+            NavSection(onKey, Modifier.fillMaxWidth().weight(0.36f))
+            HLine()
+            NumberGrid(onKey, Modifier.fillMaxWidth().weight(0.64f))
         }
     }
 }
 
+// ---------------- 네비게이션부 ----------------
+
 @Composable
-private fun RowScope.NumberKey(k: FolderKey, onKey: (FolderKey) -> Unit) {
-    KeyButton(k, onKey, Modifier.weight(1f).fillMaxHeight()) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-            Text(
-                text = k.char.toString(),
-                fontFamily = Galmuri,
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
-                color = Lcd.keyText,
-            )
-            val sub = k.digit?.let { SUB_LABELS[it] }
-            if (sub != null) {
-                Text(
-                    text = " $sub",
-                    fontFamily = Galmuri,
-                    fontSize = 10.sp,
-                    color = Lcd.keySub,
+private fun NavSection(onKey: (FolderKey) -> Unit, modifier: Modifier) {
+    Row(modifier) {
+        Column(Modifier.weight(1f).fillMaxHeight()) {
+            KeyArea(FolderKey.SOFT_LEFT, onKey, Modifier.weight(1f)) { pressed -> SoftBar(pressed) }
+            KeyArea(FolderKey.CALL, onKey, Modifier.weight(1f)) { pressed ->
+                Icon(
+                    Icons.Filled.Call,
+                    contentDescription = "통화",
+                    tint = if (pressed) Kp.glow else Kp.call,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        }
+        Box(Modifier.weight(1.2f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+            DPad(onKey)
+        }
+        Column(Modifier.weight(1f).fillMaxHeight()) {
+            KeyArea(FolderKey.SOFT_RIGHT, onKey, Modifier.weight(1f)) { pressed -> SoftBar(pressed) }
+            KeyArea(FolderKey.END, onKey, Modifier.weight(1f)) { pressed ->
+                Icon(
+                    Icons.Filled.Call,
+                    contentDescription = "종료",
+                    tint = if (pressed) Kp.glow else Kp.end,
+                    modifier = Modifier.size(28.dp).rotate(135f),
                 )
             }
         }
     }
 }
 
+/** 빛나는 짧은 파란 막대 */
 @Composable
-private fun DPad(onKey: (FolderKey) -> Unit, modifier: Modifier) {
+private fun SoftBar(pressed: Boolean) {
+    Box(contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .width(46.dp)
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .background(Kp.soft.copy(alpha = if (pressed) 0.45f else 0.22f)),
+        )
+        Box(
+            Modifier
+                .width(34.dp)
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(if (pressed) Kp.glow else Kp.soft),
+        )
+    }
+}
+
+/** 가운데 확인 키를 감싼 고리 모양 방향키 */
+@Composable
+private fun DPad(onKey: (FolderKey) -> Unit) {
     Box(
-        modifier
-            .clip(RoundedCornerShape(28.dp))
-            .background(Lcd.bodyEdge),
+        Modifier
+            .fillMaxHeight(0.92f)
+            .aspectRatio(1f)
+            .clip(CircleShape)
+            .background(Brush.radialGradient(listOf(Color(0xFF262B33), Color(0xFF15181D))))
+            .border(1.5.dp, Kp.rim, CircleShape),
     ) {
-        Column(Modifier.fillMaxSize().padding(4.dp)) {
+        Column(Modifier.fillMaxSize()) {
             Row(Modifier.weight(1f).fillMaxWidth()) {
                 Spacer1()
-                KeyButton(FolderKey.UP, onKey, Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) { Arrow("▲") }
+                KeyArea(FolderKey.UP, onKey, Modifier.weight(1f)) { Chevron(0f, it) }
                 Spacer1()
             }
             Row(Modifier.weight(1f).fillMaxWidth()) {
-                KeyButton(FolderKey.LEFT, onKey, Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) { Arrow("◀") }
-                KeyButton(FolderKey.OK, onKey, Modifier.weight(1f).padding(2.dp), shape = CircleShape, bg = Lcd.keyPressed) {
-                    KeyLabel("확인")
-                }
-                KeyButton(FolderKey.RIGHT, onKey, Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) { Arrow("▶") }
+                KeyArea(FolderKey.LEFT, onKey, Modifier.weight(1f)) { Chevron(270f, it) }
+                Spacer1()
+                KeyArea(FolderKey.RIGHT, onKey, Modifier.weight(1f)) { Chevron(90f, it) }
             }
             Row(Modifier.weight(1f).fillMaxWidth()) {
                 Spacer1()
-                KeyButton(FolderKey.DOWN, onKey, Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) { Arrow("▼") }
+                KeyArea(FolderKey.DOWN, onKey, Modifier.weight(1f)) { Chevron(180f, it) }
                 Spacer1()
             }
+        }
+        // 가운데 확인 키 (고리 안쪽 원)
+        KeyArea(
+            FolderKey.OK,
+            onKey,
+            Modifier
+                .align(Alignment.Center)
+                .fillMaxSize(0.42f)
+                .clip(CircleShape)
+                .background(Brush.verticalGradient(listOf(Color(0xFF2E343D), Color(0xFF1A1E24))))
+                .border(1.dp, Kp.rim, CircleShape),
+            shape = CircleShape,
+        ) { pressed ->
+            Text("확인", style = keyText(13.sp, if (pressed) Kp.glow else Kp.glow.copy(alpha = 0.85f), FontWeight.Medium))
         }
     }
 }
@@ -163,14 +224,86 @@ private fun DPad(onKey: (FolderKey) -> Unit, modifier: Modifier) {
 @Composable
 private fun RowScope.Spacer1() = Box(Modifier.weight(1f))
 
+/** 작은 삼각형 화살표. 누르면 파랗게 빛남 */
 @Composable
-private fun KeyButton(
+private fun Chevron(rotation: Float, pressed: Boolean) {
+    val color = if (pressed) Kp.soft else Color(0xFF8A929E)
+    Canvas(Modifier.size(10.dp).rotate(rotation)) {
+        val p = Path().apply {
+            moveTo(size.width / 2, 0f)
+            lineTo(size.width, size.height * 0.8f)
+            lineTo(0f, size.height * 0.8f)
+            close()
+        }
+        drawPath(p, color)
+    }
+}
+
+// ---------------- 숫자부 ----------------
+
+@Composable
+private fun NumberGrid(onKey: (FolderKey) -> Unit, modifier: Modifier) {
+    val rows = listOf(
+        listOf(FolderKey.D1, FolderKey.D2, FolderKey.D3),
+        listOf(FolderKey.D4, FolderKey.D5, FolderKey.D6),
+        listOf(FolderKey.D7, FolderKey.D8, FolderKey.D9),
+        listOf(FolderKey.STAR, FolderKey.D0, FolderKey.HASH),
+    )
+    Column(modifier) {
+        rows.forEachIndexed { r, row ->
+            Row(Modifier.fillMaxWidth().weight(1f)) {
+                row.forEachIndexed { c, k ->
+                    val lineColor = Kp.divider
+                    KeyArea(
+                        k,
+                        onKey,
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .drawBehind {
+                                val w = 1.dp.toPx()
+                                // 칸 사이 가는 선 (오른쪽·아래)
+                                if (c < 2) drawRect(lineColor, Offset(size.width - w, size.height * 0.12f), androidx.compose.ui.geometry.Size(w, size.height * 0.76f))
+                                if (r < 3) drawRect(lineColor, Offset(size.width * 0.08f, size.height - w), androidx.compose.ui.geometry.Size(size.width * 0.84f, w))
+                            },
+                    ) { pressed -> NumberLabel(k, pressed) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NumberLabel(k: FolderKey, pressed: Boolean) {
+    val main = if (pressed) Color.White else Kp.glow.copy(alpha = 0.92f)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            k.char.toString(),
+            style = keyText(if (k.digit != null) 25.sp else 24.sp, main, FontWeight.Medium),
+        )
+        val sub = k.digit?.let { JAMO[it] }
+        if (sub != null) {
+            Text(
+                sub,
+                style = keyText(12.sp, if (pressed) Kp.glow else Kp.sub, FontWeight.Normal),
+                modifier = Modifier.padding(start = 6.dp),
+            )
+        }
+    }
+}
+
+private fun keyText(size: androidx.compose.ui.unit.TextUnit, color: Color, weight: FontWeight) =
+    TextStyle(fontSize = size, color = color, fontWeight = weight, shadow = Backlit)
+
+// ---------------- 공통: 누르는 영역 ----------------
+
+@Composable
+private fun KeyArea(
     key: FolderKey,
     onKey: (FolderKey) -> Unit,
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(12.dp),
-    bg: Color = Lcd.key,
-    content: @Composable () -> Unit,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(14.dp),
+    content: @Composable BoxScope.(pressed: Boolean) -> Unit,
 ) {
     val view = LocalView.current
     val source = remember { MutableInteractionSource() }
@@ -179,30 +312,20 @@ private fun KeyButton(
         modifier
             .fillMaxSize()
             .clip(shape)
-            .background(if (pressed) Lcd.keyPressed else bg)
+            .background(if (pressed) Kp.pressed else Color.Transparent)
             .clickable(interactionSource = source, indication = null) {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 onKey(key)
             },
         contentAlignment = Alignment.Center,
-    ) { content() }
+    ) { content(pressed) }
 }
 
 @Composable
-private fun KeyLabel(text: String) =
-    Text(text, fontFamily = Galmuri, fontSize = 13.sp, color = Lcd.keyText)
-
-@Composable
-private fun Arrow(text: String) =
-    Text(text, fontSize = 12.sp, color = Lcd.keySub)
-
-/** 소프트키 표시용 짧은 막대 (기능 이름은 화면 맨 아래에 표시) */
-@Composable
-private fun Bar() = Box(
+private fun HLine() = Box(
     Modifier
-        .fillMaxWidth(0.4f)
-        .padding(vertical = 0.dp)
-        .clip(RoundedCornerShape(2.dp))
-        .background(Lcd.keySub)
-        .padding(vertical = 1.5.dp),
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp)
+        .height(1.dp)
+        .background(Kp.divider),
 )
