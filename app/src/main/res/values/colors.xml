@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="body">#FF15171A</color>
+    <color name="lcd">#FF0B110D</color>
+    <color name="lcd_text">#FFB6F2C4</color>
+</resources>
