@@ -8,11 +8,13 @@ import android.os.BatteryManager
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -112,7 +114,7 @@ fun FolderPhone(
                     )
                 }
                 Box(Modifier.weight(1f).fillMaxWidth()) { display() }
-                if (!imeVisible) SoftKeyLabels(soft)
+                if (!imeVisible) SoftKeyLabels(soft, onKey)
             }
         }
         if (!imeVisible) {
@@ -198,24 +200,37 @@ private fun StatusBar() {
     }
 }
 
+/** 소프트키 이름. 글자를 눌러도 아래 버튼과 같은 동작을 한다 */
 @Composable
-private fun SoftKeyLabels(soft: SoftLabels) {
+private fun SoftKeyLabels(soft: SoftLabels, onKey: (FolderKey) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x80000000))))
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x80000000)))),
         verticalAlignment = Alignment.Bottom,
     ) {
-        Text(soft.left, style = scrText(15.sp), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-        Text(
-            soft.center,
-            style = scrText(18.sp, weight = FontWeight.Bold),
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center,
-        )
-        Text(soft.right, style = scrText(15.sp), modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+        SoftLabel(soft.left, FolderKey.SOFT_LEFT, TextAlign.Start, scrText(15.sp), onKey)
+        SoftLabel(soft.center, FolderKey.OK, TextAlign.Center, scrText(18.sp, weight = FontWeight.Bold), onKey)
+        SoftLabel(soft.right, FolderKey.SOFT_RIGHT, TextAlign.End, scrText(15.sp), onKey)
     }
+}
+
+@Composable
+private fun RowScope.SoftLabel(
+    text: String,
+    key: FolderKey,
+    align: TextAlign,
+    style: TextStyle,
+    onKey: (FolderKey) -> Unit,
+) {
+    val base = Modifier.weight(1f)
+    val m = if (text.isNotEmpty()) base.clickable { onKey(key) } else base
+    Text(
+        text,
+        style = style,
+        textAlign = align,
+        modifier = m.padding(horizontal = 14.dp, vertical = 8.dp),
+    )
 }
 
 @Composable
