@@ -9,6 +9,7 @@ import org.json.JSONObject
  * 기기 내 저장소 (요구사항 7장 "상태 저장").
  * 홈 버튼을 누를 때마다 즉시 읽어야 해서 동기식 SharedPreferences를 쓴다.
  */
+@android.annotation.SuppressLint("ApplySharedPref")
 class AppPrefs(context: Context) {
     private val sp: SharedPreferences =
         context.applicationContext.getSharedPreferences("jeopda", Context.MODE_PRIVATE)
@@ -17,6 +18,8 @@ class AppPrefs(context: Context) {
     var setupDone: Boolean
         get() = sp.getBoolean(KEY_SETUP_DONE, false)
         set(v) = sp.edit().putBoolean(KEY_SETUP_DONE, v).apply()
+
+    // 모드·무료 사용 기록은 앱이 곧바로 종료돼도 남도록 commit()으로 즉시 저장한다
 
     /** 스마트폰 모드 종료 시각(벽시계 ms). 0이면 폴더폰 모드 */
     var smartEndAt: Long

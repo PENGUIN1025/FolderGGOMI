@@ -26,6 +26,15 @@ class SessionReceiver : BroadcastReceiver() {
 /** 재부팅, 앱 업데이트, 시계 변경 후 저장된 모드와 남은 시간을 복구한다 */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        SmartSession.sync(context)
+        if (intent.action in HANDLED) SmartSession.sync(context)
+    }
+
+    private companion object {
+        val HANDLED = setOf(
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+        )
     }
 }
