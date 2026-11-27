@@ -163,7 +163,14 @@ fun FolderApp(
                     ),
                 )
                 add(MethodOption(UnlockMethod.AD, "광고 보며 잠깐 멈추기", "광고 2개를 보는 동안 정말 필요한지 생각해요", true))
-                add(MethodOption(UnlockMethod.PAY, "500원 결제", "준비 중", false))
+                // 500원 결제 = 오늘 무료 해제를 다시 채우기 (무료가 남아 있으면 살 필요가 없어서 흐리게)
+                add(
+                    MethodOption(
+                        UnlockMethod.PAY, "500원으로 무료 해제 다시 채우기",
+                        if (left > 0) "무료가 ${left}회 남아 있어요" else "오늘 무료 ${UnlockRules.FREE_PER_DAY}회가 다시 생겨요 · 준비 중",
+                        false,
+                    ),
+                )
                 if (devUnlock) add(MethodOption(UnlockMethod.DEV, "개발용 해제", "디버그 빌드에만 보여요", true))
             }
             val sel = screen.selected.coerceIn(options.indices)

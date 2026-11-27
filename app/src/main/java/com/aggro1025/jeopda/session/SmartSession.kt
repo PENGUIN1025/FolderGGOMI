@@ -26,7 +26,7 @@ enum class UnlockMethod(val label: String) {
     WAIT("1분 대기"),
     AD_WAIT("광고 실패·1분 대기"),
     AD("광고 보며 멈추기"),
-    PAY("결제"),
+    PAY("결제로 다시 채움"),
     DEV("개발용"),
 }
 
@@ -129,6 +129,13 @@ object SmartSession {
     }
 
     fun isFreeAvailableToday(context: Context): Boolean = freeRemainingToday(context) > 0
+
+    /** 500원 결제 성공 시: 오늘 무료 해제를 처음 횟수로 다시 채운다 (결제 기능은 v0.2b에서 연결) */
+    fun refillFreeToday(context: Context) {
+        val prefs = AppPrefs(context)
+        prefs.lastFreeDate = today(context).toString()
+        prefs.freeUsedCount = 0
+    }
 
     fun canScheduleExact(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am(context).canScheduleExactAlarms()
