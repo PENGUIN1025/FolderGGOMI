@@ -56,4 +56,9 @@ class ScreenshotTest {
     // 세로가 짧은 폰 (메뉴 이름이 잘리지 않는지)
     @Test @Config(sdk = [35], qualifiers = "w360dp-h640dp-xxhdpi")
     fun menuSmallScreen() = shoot("8_menu_small_screen", Screen.Menu(selected = 6))
+
+    // 시안: 새 설정 화면
+    @Test fun settingsDesign() = shootContent("9_settings_design") {
+        com.aggro1025.jeopda.ui.settings.SettingsDesign(com.aggro1025.jeopda.ui.settings.previewSettingsFirstRun)
+    }
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -100,9 +101,12 @@ private val JAMO = mapOf(
 
 private val Backlit = Shadow(Color(0x995AB0FF), Offset.Zero, 10f)
 
-/** 화면 아래쪽 폴더폰 버튼부: 검은 통판 위에 소프트키·방향키·통화/종료 + 숫자 12키 */
+/**
+ * 화면 아래쪽 폴더폰 버튼부: 검은 통판 위에 소프트키·방향키·통화/종료 + 숫자 12키.
+ * 소프트키 이름은 파란 막대 위에, 가운데 기능 이름은 확인 키 안에 화면마다 바뀌어 표시된다.
+ */
 @Composable
-fun Keypad(onKey: (FolderKey) -> Unit, modifier: Modifier = Modifier) {
+fun Keypad(onKey: (FolderKey) -> Unit, modifier: Modifier = Modifier, soft: SoftLabels = SoftLabels()) {
     Box(
         modifier
             .fillMaxSize()
@@ -115,7 +119,7 @@ fun Keypad(onKey: (FolderKey) -> Unit, modifier: Modifier = Modifier) {
                 .background(Brush.verticalGradient(listOf(Kp.plateTop, Kp.plateBottom)))
                 .border(1.dp, Kp.rim, RoundedCornerShape(22.dp)),
         ) {
-            NavSection(onKey, Modifier.fillMaxWidth().weight(0.36f))
+            NavSection(onKey, soft, Modifier.fillMaxWidth().weight(0.36f))
             HLine()
             NumberGrid(onKey, Modifier.fillMaxWidth().weight(0.64f))
         }
@@ -125,10 +129,10 @@ fun Keypad(onKey: (FolderKey) -> Unit, modifier: Modifier = Modifier) {
 // ---------------- 네비게이션부 ----------------
 
 @Composable
-private fun NavSection(onKey: (FolderKey) -> Unit, modifier: Modifier) {
+private fun NavSection(onKey: (FolderKey) -> Unit, soft: SoftLabels, modifier: Modifier) {
     Row(modifier) {
         Column(Modifier.weight(1f).fillMaxHeight()) {
-            KeyArea(FolderKey.SOFT_LEFT, onKey, Modifier.weight(1f)) { pressed -> SoftBar(pressed) }
+            KeyArea(FolderKey.SOFT_LEFT, onKey, Modifier.weight(1f)) { pressed -> SoftBar(soft.left, pressed) }
             KeyArea(FolderKey.CALL, onKey, Modifier.weight(1f)) { pressed ->
                 Icon(
                     Icons.Filled.Call,
@@ -139,10 +143,10 @@ private fun NavSection(onKey: (FolderKey) -> Unit, modifier: Modifier) {
             }
         }
         Box(Modifier.weight(1.2f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-            DPad(onKey)
+            DPad(onKey, soft.center)
         }
         Column(Modifier.weight(1f).fillMaxHeight()) {
-            KeyArea(FolderKey.SOFT_RIGHT, onKey, Modifier.weight(1f)) { pressed -> SoftBar(pressed) }
+            KeyArea(FolderKey.SOFT_RIGHT, onKey, Modifier.weight(1f)) { pressed -> SoftBar(soft.right, pressed) }
             KeyArea(FolderKey.END, onKey, Modifier.weight(1f)) { pressed ->
                 Icon(
                     Icons.Filled.Call,
@@ -155,9 +159,22 @@ private fun NavSection(onKey: (FolderKey) -> Unit, modifier: Modifier) {
     }
 }
 
-/** 빛나는 짧은 파란 막대 */
+/** 소프트키: 지금 화면의 기능 이름 + 빛나는 짧은 파란 막대 */
 @Composable
-private fun SoftBar(pressed: Boolean) {
+private fun SoftBar(label: String, pressed: Boolean) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            label,
+            style = keyText(15.sp, if (pressed) Kp.glow else Kp.sub, FontWeight.Medium),
+            maxLines = 1,
+        )
+        Spacer(Modifier.height(6.dp))
+        SoftBarGlow(pressed)
+    }
+}
+
+@Composable
+private fun SoftBarGlow(pressed: Boolean) {
     Box(contentAlignment = Alignment.Center) {
         Box(
             Modifier
@@ -178,7 +195,7 @@ private fun SoftBar(pressed: Boolean) {
 
 /** 가운데 확인 키를 감싼 고리 모양 방향키 */
 @Composable
-private fun DPad(onKey: (FolderKey) -> Unit) {
+private fun DPad(onKey: (FolderKey) -> Unit, centerLabel: String) {
     Box(
         Modifier
             .fillMaxHeight(0.92f)
@@ -216,7 +233,11 @@ private fun DPad(onKey: (FolderKey) -> Unit) {
                 .border(1.dp, Kp.rim, CircleShape),
             shape = CircleShape,
         ) { pressed ->
-            Text("확인", style = keyText(13.sp, if (pressed) Kp.glow else Kp.glow.copy(alpha = 0.85f), FontWeight.Medium))
+            Text(
+                centerLabel.ifEmpty { "확인" },
+                style = keyText(14.sp, if (pressed) Kp.glow else Kp.glow.copy(alpha = 0.9f), FontWeight.Bold),
+                maxLines = 1,
+            )
         }
     }
 }

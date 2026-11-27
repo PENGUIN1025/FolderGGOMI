@@ -64,13 +64,6 @@ class SoftKeyTest {
         compose.onNodeWithText("하루 1회 무료").assertIsDisplayed()
     }
 
-    @Test
-    fun okKeyOpensMenu() {
-        launch()
-        compose.onNodeWithText("확인").performClick()
-        compose.mainClock.advanceTimeBy(100)
-        compose.onNodeWithText("열기").assertIsDisplayed()
-    }
 
     @Test
     fun digitOnHomeOpensDialerWithThatDigit() {

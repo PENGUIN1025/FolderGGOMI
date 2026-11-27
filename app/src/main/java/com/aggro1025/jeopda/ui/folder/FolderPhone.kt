@@ -80,7 +80,7 @@ fun scrText(size: TextUnit, color: Color = Scr.text, weight: FontWeight = FontWe
 
 /**
  * 전체 화면: 위쪽 약 55%는 디스플레이, 아래쪽 약 45%는 폴더폰 버튼부.
- * 디스플레이는 실제 폴더폰처럼 위 상태 표시줄, 제목, 내용, 아래 소프트키 이름 순서로 그린다.
+ * 디스플레이는 위 상태 표시줄, 제목, 내용 순서로 그린다. 소프트키 이름은 버튼부에 표시한다.
  * 키보드(사유 입력)가 올라오면 버튼부를 숨기고 디스플레이가 남은 공간을 쓴다.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -117,11 +117,10 @@ fun FolderPhone(
                     )
                 }
                 Box(Modifier.weight(1f).fillMaxWidth()) { display() }
-                if (!imeVisible) SoftKeyLabels(soft, onKey)
             }
         }
         if (!imeVisible) {
-            Keypad(onKey = onKey, modifier = Modifier.weight(0.45f))
+            Keypad(onKey = onKey, modifier = Modifier.weight(0.45f), soft = soft)
         }
     }
 }
@@ -201,39 +200,6 @@ private fun StatusBar() {
             style = scrText(13.sp, weight = FontWeight.Bold),
         )
     }
-}
-
-/** 소프트키 이름. 글자를 눌러도 아래 버튼과 같은 동작을 한다 */
-@Composable
-private fun SoftKeyLabels(soft: SoftLabels, onKey: (FolderKey) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x80000000)))),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        SoftLabel(soft.left, FolderKey.SOFT_LEFT, TextAlign.Start, scrText(15.sp), onKey)
-        SoftLabel(soft.center, FolderKey.OK, TextAlign.Center, scrText(18.sp, weight = FontWeight.Bold), onKey)
-        SoftLabel(soft.right, FolderKey.SOFT_RIGHT, TextAlign.End, scrText(15.sp), onKey)
-    }
-}
-
-@Composable
-private fun RowScope.SoftLabel(
-    text: String,
-    key: FolderKey,
-    align: TextAlign,
-    style: TextStyle,
-    onKey: (FolderKey) -> Unit,
-) {
-    val base = Modifier.weight(1f)
-    val m = if (text.isNotEmpty()) base.clickable { onKey(key) } else base
-    Text(
-        text,
-        style = style,
-        textAlign = align,
-        modifier = m.padding(horizontal = 14.dp, vertical = 8.dp),
-    )
 }
 
 @Composable
