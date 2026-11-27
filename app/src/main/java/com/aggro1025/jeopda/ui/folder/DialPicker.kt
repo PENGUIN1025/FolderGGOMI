@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +50,14 @@ fun DialPicker(
     val view = LocalView.current
     val current by rememberUpdatedState(minutes)
     val change by rememberUpdatedState(onChange)
+    var showWheel by remember { mutableStateOf(false) }
+
+    /** 가운데(시간 글씨 부분)를 누르면 1분 단위 창, 바깥을 누르거나 돌리면 시계판 */
+    fun inCenter(offset: Offset, center: Offset, radius: Float): Boolean {
+        val dx = offset.x - center.x
+        val dy = offset.y - center.y
+        return dx * dx + dy * dy < (radius * 0.55f) * (radius * 0.55f)
+    }
 
     fun update(offset: Offset, center: Offset) {
         val angle = Math.toDegrees(atan2((offset.x - center.x).toDouble(), (center.y - offset.y).toDouble()))
@@ -69,17 +80,34 @@ fun DialPicker(
             .size(size)
             .pointerInput(Unit) {
                 val c = Offset(this.size.width / 2f, this.size.height / 2f)
-                detectDragGestures(onDragStart = { update(it, c) }) { change, _ -> update(change.position, c) }
+                val r = this.size.width / 2f
+                var fromCenter = false
+                detectDragGestures(onDragStart = {
+                    fromCenter = inCenter(it, c, r)
+                    if (!fromCenter) update(it, c)
+                }) { change, _ -> if (!fromCenter) update(change.position, c) }
             }
             .pointerInput(Unit) {
                 val c = Offset(this.size.width / 2f, this.size.height / 2f)
-                detectTapGestures { update(it, c) }
+                val r = this.size.width / 2f
+                detectTapGestures { if (inCenter(it, c, r)) showWheel = true else update(it, c) }
             },
         contentAlignment = Alignment.Center,
     ) {
         DialFace(minutes, Modifier.size(size))
+        if (showWheel) {
+            WheelTimeDialog(
+                minutes,
+                onDismiss = { showWheel = false },
+                onConfirm = {
+                    showWheel = false
+                    change(it)
+                },
+            )
+        }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(durationText(minutes), style = scrText(26.sp, weight = FontWeight.Bold))
+            Text("눌러서 1분 단위로", style = scrText(11.sp, Scr.accent))
             Text(
                 SimpleDateFormat("a h:mm", Locale.KOREA).format(Date(System.currentTimeMillis() + minutes * 60_000L)) + "까지",
                 style = scrText(13.sp, Scr.dim),

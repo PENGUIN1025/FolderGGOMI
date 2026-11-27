@@ -490,7 +490,7 @@ private fun UnlockInputScreen(
                 DialPicker(minutes, onChange = { setMinutes(it) })
             }
             Text(
-                "바늘을 돌려서 정해요 · 한 바퀴 = 12시간",
+                "바늘을 돌리면 5분 단위 · 가운데를 누르면 1분 단위",
                 style = scrText(11.sp, Scr.faint),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 6.dp),

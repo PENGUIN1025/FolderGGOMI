@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import com.aggro1025.jeopda.session.UnlockMethod
 import com.aggro1025.jeopda.ui.folder.PreviewScreen
 import com.aggro1025.jeopda.ui.folder.Screen
@@ -58,6 +60,12 @@ class ScreenshotTest {
     fun menuSmallScreen() = shoot("8_menu_small_screen", Screen.Menu(selected = 6))
 
     @Test fun unlockWait() = shoot("10_unlock_wait", Screen.UnlockWait(30, "회사 메일 확인해야 해요", adFailed = true))
+    @Test fun wheelPanel() = shootContent("14_wheel_time") {
+        androidx.compose.foundation.layout.Box(
+            androidx.compose.ui.Modifier.fillMaxSize().background(Lcd.body),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) { com.aggro1025.jeopda.ui.folder.WheelTimePanel(127, {}, {}) }
+    }
     @Test fun blocked() = shoot("13_blocked", Screen.Blocked("인스타그램"))
     @Test fun unlockAd() = shoot("12_unlock_ad", Screen.UnlockAd(30, "회사 메일 확인해야 해요"))
 
