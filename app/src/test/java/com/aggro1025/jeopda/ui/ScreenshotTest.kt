@@ -52,5 +52,8 @@ class ScreenshotTest {
     @Test fun dialer() = shoot("5_dialer", Screen.Dialer("01012345678"))
     @Test fun contacts() = shoot("6_contacts", Screen.Contacts(selected = 5))
     @Test fun contactsFiltered() = shoot("7_contacts_filtered", Screen.Contacts(keys = "4", selected = 1))
-}
 
+    // 세로가 짧은 폰 (메뉴 이름이 잘리지 않는지)
+    @Test @Config(sdk = [35], qualifiers = "w360dp-h640dp-xxhdpi")
+    fun menuSmallScreen() = shoot("8_menu_small_screen", Screen.Menu(selected = 6))
+}

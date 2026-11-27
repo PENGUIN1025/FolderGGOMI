@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aggro1025.jeopda.data.Contact
@@ -267,14 +269,16 @@ private fun MenuCell(entry: MenuEntry, selected: Boolean, modifier: Modifier, on
     } else {
         base
     }
-    Box(framed.clickable(onClick = onClick)) {
+    BoxWithConstraints(framed.clickable(onClick = onClick)) {
+        // 칸 높이에 맞춰 아이콘 크기를 줄인다 (세로가 짧은 폰에서 이름이 잘리지 않게)
+        val iconSize = (maxHeight - 34.dp).coerceIn(24.dp, 46.dp)
         Column(
             Modifier.fillMaxSize().padding(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            MenuIcon(entry)
-            Spacer(Modifier.height(5.dp))
+            MenuIcon(entry, iconSize)
+            Spacer(Modifier.height(4.dp))
             Text(
                 entry.label,
                 style = scrText(
@@ -298,8 +302,7 @@ private fun MenuCell(entry: MenuEntry, selected: Boolean, modifier: Modifier, on
 
 /** 실제 앱 아이콘. 읽지 못하면(미리보기, 기본 앱을 못 찾은 경우) 색 사각형 + 기호 */
 @Composable
-private fun MenuIcon(entry: MenuEntry) {
-    val size = 46.dp
+private fun MenuIcon(entry: MenuEntry, size: Dp) {
     when {
         entry.icon != null -> Image(entry.icon, contentDescription = null, modifier = Modifier.size(size))
         entry.empty -> Box(
@@ -321,7 +324,7 @@ private fun MenuIcon(entry: MenuEntry) {
                     Symbols.forSlot(entry.slot),
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(26.dp),
+                    modifier = Modifier.size(size * 0.56f),
                 )
             }
         }
@@ -589,10 +592,10 @@ internal val previewMenu = listOf(
 )
 
 @Composable
-internal fun PreviewScreen(screen: Screen) {
+internal fun PreviewScreen(screen: Screen, devUnlock: Boolean = true) {
     CompositionLocalProvider(LocalInspectionMode provides true) {
         JeopdaTheme {
-            FolderApp(screen, {}, previewMenu, PreviewActions, KeyRouter(), devUnlock = true, contacts = previewContacts)
+            FolderApp(screen, {}, previewMenu, PreviewActions, KeyRouter(), devUnlock = devUnlock, contacts = previewContacts)
         }
     }
 }
