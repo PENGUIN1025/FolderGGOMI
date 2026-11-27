@@ -5,11 +5,6 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import com.aggro1025.jeopda.R
 
 /** 임시 디자인: 검은 LCD 화면 + 밝은 연두 글자, 짙은 회색 본체 */
 object Lcd {
@@ -41,13 +36,6 @@ object Scr {
     val panel = Color(0x33FFFFFF)
     val statusBg = Color(0x66000000)
 }
-
-val Galmuri = FontFamily(
-    Font(R.font.galmuri11, FontWeight.Normal),
-    Font(R.font.galmuri11_bold, FontWeight.Bold),
-)
-
-val LcdText = TextStyle(fontFamily = Galmuri, color = Lcd.text)
 
 @Composable
 fun JeopdaTheme(content: @Composable () -> Unit) {

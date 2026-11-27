@@ -132,6 +132,7 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
 
     var pickSlot by remember { mutableStateOf<Int?>(null) }
+    var showLicenses by remember { mutableStateOf(false) }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -242,9 +243,12 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
             }
 
             Spacer(Modifier.height(20.dp))
-            Hint("접다 ${BuildConfig.VERSION_NAME} · 폰트: Galmuri (© Lee Minseo, SIL Open Font License 1.1)")
+            Hint("접다 ${BuildConfig.VERSION_NAME}")
+            TextButton(onClick = { showLicenses = true }) { Text("오픈소스 라이선스") }
         }
     }
+
+    if (showLicenses) LicensesDialog(onDismiss = { showLicenses = false })
 
     pickSlot?.let { slot ->
         AppPickerDialog(
@@ -325,6 +329,38 @@ private fun AppPickerDialog(onDismiss: () -> Unit, onPick: (String) -> Unit) {
                         }
                     }
                 }
+            }
+        },
+    )
+}
+
+/** 앱에 포함된 오픈소스 라이브러리와 라이선스 고지 */
+private val OPEN_SOURCE = listOf(
+    "Android Jetpack (AndroidX: Core, Activity, Lifecycle, Compose UI·Foundation·Material3)" to "Apache License 2.0",
+    "Material Icons (Compose material-icons-core, 아이콘 모양 일부 포함)" to "Apache License 2.0",
+    "Kotlin 표준 라이브러리, kotlinx.coroutines" to "Apache License 2.0",
+)
+
+@Composable
+private fun LicensesDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val apache = remember {
+        runCatching { context.assets.open("apache-2.0.txt").bufferedReader().use { it.readText() } }.getOrDefault("")
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("닫기") } },
+        title = { Text("오픈소스 라이선스") },
+        text = {
+            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
+                OPEN_SOURCE.forEach { (name, license) ->
+                    Text(name, fontSize = 14.sp)
+                    Text(license, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Spacer(Modifier.height(8.dp))
+                }
+                HorizontalDivider()
+                Spacer(Modifier.height(8.dp))
+                Text(apache, fontSize = 11.sp)
             }
         },
     )
