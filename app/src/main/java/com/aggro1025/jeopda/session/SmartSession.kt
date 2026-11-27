@@ -40,7 +40,10 @@ object SmartSession {
     private const val NOTIF_ONGOING = 1
     private const val NOTIF_ALERT = 2
 
-    const val ACTION_WARN = "com.aggro1025.jeopda.WARN"
+    /** 종료 N분 전 알림. 실제 액션 이름은 "...WARN_30", "...WARN_10" */
+    private const val ACTION_WARN_PREFIX = "com.aggro1025.jeopda.WARN_"
+
+    fun isWarnAction(action: String?) = action?.startsWith(ACTION_WARN_PREFIX) == true
     const val ACTION_EXPIRE = "com.aggro1025.jeopda.EXPIRE"
 
     /**
@@ -126,9 +129,12 @@ object SmartSession {
     private fun scheduleAlarms(context: Context) {
         val remaining = remainingMs(context)
         val nowElapsed = Clock.elapsed()
-        val warnIn = remaining - UnlockRules.WARNING_BEFORE_MILLIS
-        if (warnIn > 0) setAlarm(context, nowElapsed + warnIn, alarmIntent(context, ACTION_WARN))
-        else am(context).cancel(alarmIntent(context, ACTION_WARN))
+        // 이미 지난 시점의 알림은 건너뛴다 (예: 15분만 쓰면 10분 전 알림만)
+        UnlockRules.WARNING_MINUTES.forEach { m ->
+            val warnIn = remaining - m * 60_000L
+            val pi = alarmIntent(context, ACTION_WARN_PREFIX + m)
+            if (warnIn > 0) setAlarm(context, nowElapsed + warnIn, pi) else am(context).cancel(pi)
+        }
         setAlarm(context, nowElapsed + remaining, alarmIntent(context, ACTION_EXPIRE))
     }
 
@@ -143,7 +149,7 @@ object SmartSession {
     }
 
     private fun cancelAlarms(context: Context) {
-        am(context).cancel(alarmIntent(context, ACTION_WARN))
+        UnlockRules.WARNING_MINUTES.forEach { am(context).cancel(alarmIntent(context, ACTION_WARN_PREFIX + it)) }
         am(context).cancel(alarmIntent(context, ACTION_EXPIRE))
     }
 
@@ -189,9 +195,12 @@ object SmartSession {
 
     fun showWarning(context: Context) {
         if (!isSmart(context)) return
+        // 남은 시간 알림을 밀어서 지웠더라도 이때 다시 띄운다
+        showOngoing(context)
+        val left = ((remainingMs(context) + 30_000L) / 60_000L).coerceAtLeast(1)
         val n = Notification.Builder(context, CHANNEL_ALERT)
             .setSmallIcon(R.drawable.ic_stat_jeopda)
-            .setContentTitle("5분 후 폴더폰으로 돌아가요")
+            .setContentTitle("${left}분 후 폴더폰으로 돌아가요")
             .setContentText("${formatTime(endAt(context))}에 스마트폰 모드가 끝나요")
             .setContentIntent(settingsIntent(context))
             .addAction(returnAction(context))

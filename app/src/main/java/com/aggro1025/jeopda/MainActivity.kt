@@ -51,6 +51,7 @@ import com.aggro1025.jeopda.ui.folder.FolderKey
 import com.aggro1025.jeopda.ui.folder.KeyRouter
 import com.aggro1025.jeopda.ui.folder.MenuEntry
 import com.aggro1025.jeopda.ui.folder.Screen
+import com.aggro1025.jeopda.ui.smart.RelayWaiting
 import com.aggro1025.jeopda.ui.smart.SmartDrawer
 import com.aggro1025.jeopda.ui.smart.SetupPending
 import kotlinx.coroutines.Dispatchers
@@ -128,7 +129,12 @@ class MainActivity : ComponentActivity() {
                         contacts = contacts,
                     )
                     Mode.SETUP -> SetupPending(onOpen = { actions.openSettings() })
-                    Mode.RELAY -> Box(Modifier.fillMaxSize().background(Lcd.body))
+                    // 보통은 바로 원래 홈 화면이 덮어서 보이지 않음. 원래 홈 앱이 안 열리면 잠시 뒤 버튼이 나온다
+                    Mode.RELAY -> RelayWaiting(
+                        onOpen = { relayTimes.clear(); enterSmart() },
+                        onDrawer = { mode = Mode.DRAWER },
+                        onReturn = { returnToFolder() },
+                    )
                     Mode.DRAWER -> SmartDrawer(onReturn = { returnToFolder() })
                 }
             }
@@ -237,7 +243,11 @@ class MainActivity : ComponentActivity() {
                 Intent(Intent.ACTION_MAIN)
                     .addCategory(Intent.CATEGORY_HOME)
                     .setComponent(target)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    .addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                            // 처음 상태로 새로 열기: 앱 서랍이 열린 채로 남는 문제 대응 (설정에서 끌 수 있음)
+                            (if (prefs.smartHomeFresh) Intent.FLAG_ACTIVITY_CLEAR_TASK else 0),
+                    ),
             )
             @Suppress("DEPRECATION")
             overridePendingTransition(0, 0)

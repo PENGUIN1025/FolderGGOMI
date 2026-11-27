@@ -67,6 +67,8 @@ data class SettingsUi(
     val allowedNotifApps: List<NotifApp>,
     val editable: Boolean,
     val smartHomeLabel: String,
+    /** 홈 버튼 누르면 원래 홈 화면을 처음 상태로 새로 열기 */
+    val smartHomeFresh: Boolean = true,
 )
 
 interface SettingsCallbacks {
@@ -81,6 +83,7 @@ interface SettingsCallbacks {
     fun onPrivacy()
     fun onLicenses()
     fun onHistory()
+    fun onToggleSmartHomeFresh()
 }
 
 object NoCallbacks : SettingsCallbacks {
@@ -95,6 +98,7 @@ object NoCallbacks : SettingsCallbacks {
     override fun onPrivacy() = Unit
     override fun onLicenses() = Unit
     override fun onHistory() = Unit
+    override fun onToggleSmartHomeFresh() = Unit
 }
 
 private fun t(size: TextUnit, color: Color = Scr.text, weight: FontWeight = FontWeight.Normal) =
@@ -250,6 +254,12 @@ fun SettingsDesign(ui: SettingsUi, cb: SettingsCallbacks = NoCallbacks) {
                 Divider()
                 LinkRow("스마트폰 모드에서 쓸 홈 화면", ui.smartHomeLabel, cb::onSmartHome)
                 Divider()
+                LinkRow(
+                    "홈 버튼 누르면 원래 홈 첫 화면으로",
+                    if (ui.smartHomeFresh) "켜짐" else "꺼짐",
+                    cb::onToggleSmartHomeFresh,
+                )
+                Divider()
                 LinkRow("개인정보처리방침", "", cb::onPrivacy)
                 Divider()
                 LinkRow("오픈소스 라이선스", "", cb::onLicenses)
@@ -399,8 +409,8 @@ internal val previewSettingsFirstRun = SettingsUi(
     steps = listOf(
         SetupStep(StepId.HOME, "기본 홈 앱", "접다를 홈 앱으로 지정하면 폴더폰 화면이 켜져요", done = true, required = true),
         SetupStep(StepId.NOTIF_ACCESS, "알림 접근", "폴더폰 모드에서 필요한 알림만 남겨요. 알림 내용은 저장하거나 보내지 않아요", done = false, required = true),
-        SetupStep(StepId.POST_NOTIF, "알림 표시", "스마트폰 모드 남은 시간과 종료 5분 전에 알려요", done = true, required = false),
-        SetupStep(StepId.EXACT_ALARM, "알람 및 리마인더", "종료 5분 전 알림을 정확한 시각에 보내요", done = false, required = false),
+        SetupStep(StepId.POST_NOTIF, "알림 표시", "스마트폰 모드 남은 시간과 종료 30분 전·10분 전에 알려요", done = true, required = false),
+        SetupStep(StepId.EXACT_ALARM, "알람 및 리마인더", "종료 전 알림을 정확한 시각에 보내요", done = false, required = false),
         SetupStep(StepId.CONTACTS, "연락처", "폴더폰 화면에 연락처를 보여줘요", done = false, required = false),
         SetupStep(StepId.CALL, "전화 걸기", "번호를 누르면 바로 전화를 걸어요", done = false, required = false),
     ),

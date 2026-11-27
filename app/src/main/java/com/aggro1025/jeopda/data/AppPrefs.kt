@@ -78,6 +78,14 @@ class AppPrefs(context: Context) {
         get() = sp.getLong(KEY_HOME_WARN, 0L)
         set(v) = sp.edit().putLong(KEY_HOME_WARN, v).apply()
 
+    /**
+     * 스마트폰 모드에서 홈 버튼을 누를 때 원래 홈 앱을 처음 상태(첫 페이지, 앱 서랍 닫힘)로 새로 열지.
+     * 원래 홈 앱이 기본 홈이 아니라서 앱 서랍에서 홈 버튼이 안 먹히는 문제(One UI 홈) 대응
+     */
+    var smartHomeFresh: Boolean
+        get() = sp.getBoolean(KEY_SMART_HOME_FRESH, true)
+        set(v) = sp.edit().putBoolean(KEY_SMART_HOME_FRESH, v).apply()
+
     /** 스마트폰 모드에서 띄울 원래 홈 앱 (패키지/액티비티). null이면 자동 선택 */
     var smartHomeComponent: String?
         get() = sp.getString(KEY_SMART_HOME, null)
@@ -147,6 +155,7 @@ class AppPrefs(context: Context) {
         private const val KEY_ANCHOR_NETWORK = "anchor_network"
         private const val KEY_ALLOWED_NOTIF = "allowed_notif_apps"
         private const val KEY_HOME_WARN = "last_home_warn"
+        private const val KEY_SMART_HOME_FRESH = "smart_home_fresh"
         private const val KEY_SETUP_DONE = "setup_done"
         private const val KEY_SMART_END_AT = "smart_end_at"
         private const val KEY_LAST_FREE_DATE = "last_free_date"

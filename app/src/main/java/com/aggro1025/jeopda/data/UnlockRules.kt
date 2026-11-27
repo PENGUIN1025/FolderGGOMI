@@ -16,8 +16,8 @@ object UnlockRules {
     /** 사유 최소 글자 수 (공백 제외). 문서의 10글자에서 사용자 결정으로 6글자로 변경 */
     const val MIN_REASON_CHARS = 6
 
-    /** 종료 전 알림 시점 */
-    const val WARNING_BEFORE_MILLIS = 5 * 60 * 1000L
+    /** 종료 전 알림 시점 (분). 문서의 "5분 전"에서 사용자 결정으로 30분 전·10분 전으로 변경 */
+    val WARNING_MINUTES = listOf(30, 10)
 
     sealed interface ReasonCheck {
         data object Ok : ReasonCheck

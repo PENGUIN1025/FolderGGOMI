@@ -4,11 +4,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
-/** 종료 5분 전 알림과 만료 처리 */
+/** 종료 30분 전·10분 전 알림과 만료 처리 */
 class SessionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (SmartSession.isWarnAction(intent.action)) {
+            SmartSession.showWarning(context)
+            return
+        }
         when (intent.action) {
-            SmartSession.ACTION_WARN -> SmartSession.showWarning(context)
             SmartSession.ACTION_EXPIRE -> {
                 val wasSmart = com.aggro1025.jeopda.data.AppPrefs(context).smartEndAt != 0L
                 if (SmartSession.isSmart(context)) {

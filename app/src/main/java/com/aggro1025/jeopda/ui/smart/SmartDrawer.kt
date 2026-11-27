@@ -109,3 +109,36 @@ fun SetupPending(onOpen: () -> Unit) {
         }
     }
 }
+
+/**
+ * 스마트폰 모드에서 원래 홈 화면을 띄우는 동안의 화면.
+ * 평소에는 원래 홈 화면이 바로 덮어서 보이지 않고, 1.5초가 지나도 남아 있으면 버튼을 보여 준다 (갇히지 않게).
+ */
+@Composable
+fun RelayWaiting(onOpen: () -> Unit, onDrawer: () -> Unit, onReturn: () -> Unit) {
+    var showButtons by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(1500)
+        showButtons = true
+    }
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        if (showButtons) {
+            Column(
+                Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("스마트폰 모드", fontSize = 20.sp)
+                Text(
+                    "원래 홈 화면이 열리지 않으면 아래에서 골라 주세요",
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+                Button(onClick = onOpen, modifier = Modifier.fillMaxWidth()) { Text("원래 홈 화면 열기") }
+                Button(onClick = onDrawer, modifier = Modifier.fillMaxWidth()) { Text("앱 목록 보기") }
+                Button(onClick = onReturn, modifier = Modifier.fillMaxWidth()) { Text("폴더폰으로 돌아가기") }
+            }
+        }
+    }
+}

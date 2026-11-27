@@ -179,6 +179,11 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
         override fun onHistory() {
             showHistory = true
         }
+
+        override fun onToggleSmartHomeFresh() {
+            prefs.smartHomeFresh = !prefs.smartHomeFresh
+            tick++
+        }
     }
 
     if (showHistory) {
@@ -237,7 +242,7 @@ private fun buildUi(context: Context, prefs: AppPrefs): SettingsUi {
         if (Build.VERSION.SDK_INT >= 33) {
             add(
                 SetupStep(
-                    StepId.POST_NOTIF, "알림 표시", "스마트폰 모드 남은 시간과 종료 5분 전에 알려요",
+                    StepId.POST_NOTIF, "알림 표시", "스마트폰 모드 남은 시간과 종료 30분 전·10분 전에 알려요",
                     granted(context, Manifest.permission.POST_NOTIFICATIONS), required = false,
                 ),
             )
@@ -245,7 +250,7 @@ private fun buildUi(context: Context, prefs: AppPrefs): SettingsUi {
         if (Build.VERSION.SDK_INT >= 31) {
             add(
                 SetupStep(
-                    StepId.EXACT_ALARM, "알람 및 리마인더", "종료 5분 전 알림을 정확한 시각에 보내요",
+                    StepId.EXACT_ALARM, "알람 및 리마인더", "종료 전 알림을 정확한 시각에 보내요",
                     SmartSession.canScheduleExact(context), required = false,
                 ),
             )
@@ -287,6 +292,7 @@ private fun buildUi(context: Context, prefs: AppPrefs): SettingsUi {
         allowedNotifApps = prefs.allowedNotifApps.map { NotifApp(it, Apps.entry(context, it)?.label ?: it) },
         editable = !setupDone || smart,
         smartHomeLabel = homeLabel,
+        smartHomeFresh = prefs.smartHomeFresh,
     )
 }
 
