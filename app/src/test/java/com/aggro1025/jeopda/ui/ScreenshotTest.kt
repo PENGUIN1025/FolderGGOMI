@@ -68,4 +68,8 @@ class ScreenshotTest {
     @Test fun settingsDesign() = shootContent("9_settings_design") {
         com.aggro1025.jeopda.ui.settings.SettingsDesign(com.aggro1025.jeopda.ui.settings.previewSettingsFirstRun)
     }
+
+    // 시안: 해제 시간 고르기
+    @Test fun mockDial() = shootContent("mock_dial_picker") { MockDialPicker(150) }
+    @Test fun mockWheel() = shootContent("mock_wheel_picker") { MockWheelPicker(2, 30) }
 }
