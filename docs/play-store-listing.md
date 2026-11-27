@@ -58,7 +58,7 @@
 
 | 항목 | 답변 |
 |---|---|
-| 개인정보처리방침 | URL 필요 (`docs/play-console.md`의 초안을 웹에 게시) |
+| 개인정보처리방침 | `https://penguin1025.github.io/jeopda-privacy/` (공개 저장소 `PENGUIN1025/jeopda-privacy`의 `index.html`, 원본은 `docs/privacy/index.html`) |
 | 앱 액세스 | **모든 기능을 특별한 액세스 권한 없이 사용할 수 있음** (로그인 없음) |
 | 광고 | **아니요, 앱에 광고가 없습니다** (v0.2에서 변경) |
 | 콘텐츠 등급 | 아래 설문 참고 |
