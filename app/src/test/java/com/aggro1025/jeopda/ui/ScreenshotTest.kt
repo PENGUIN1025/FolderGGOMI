@@ -69,7 +69,8 @@ class ScreenshotTest {
         com.aggro1025.jeopda.ui.settings.SettingsDesign(com.aggro1025.jeopda.ui.settings.previewSettingsFirstRun)
     }
 
-    // 시안: 해제 시간 고르기
-    @Test fun mockDial() = shootContent("mock_dial_picker") { MockDialPicker(150) }
-    @Test fun mockWheel() = shootContent("mock_wheel_picker") { MockWheelPicker(2, 30) }
+
+    // 해제 입력 전체 모습 (스크롤 없이 보이게 세로로 긴 화면)
+    @Test @Config(sdk = [35], qualifiers = "w384dp-h1180dp-xxhdpi")
+    fun unlockInputFull() = shoot("4b_unlock_input_full", Screen.UnlockInput(UnlockMethod.FREE))
 }

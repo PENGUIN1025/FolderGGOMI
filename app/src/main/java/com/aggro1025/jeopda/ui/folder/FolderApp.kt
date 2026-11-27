@@ -451,26 +451,25 @@ private fun UnlockInputScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 14.dp, vertical = 8.dp),
         ) {
-            Label("스마트폰 모드를 얼마 동안 쓸까요? (최대 ${UnlockRules.MAX_MINUTES / 60}시간)")
-            Row(
-                Modifier
-                    .padding(vertical = 6.dp)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0x40000000))
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                Stepper("시간", minutes / 60, { setMinutes(minutes - 60) }, { setMinutes(minutes + 60) })
-                Stepper("분", minutes % 60, { setMinutes(minutes - UnlockRules.MINUTE_STEP) }, { setMinutes(minutes + UnlockRules.MINUTE_STEP) })
+            Label("스마트폰 모드를 얼마 동안 쓸까요? (최대 ${UnlockRules.MAX_MINUTES / 60}시간)", Modifier.fillMaxWidth())
+            // 시계형: 바늘을 돌려 5분 단위로, 한 바퀴 = 12시간
+            Box(Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
+                DialPicker(minutes, onChange = { setMinutes(it) })
             }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            ) {
                 listOf(15 to "15분", 30 to "30분", 60 to "1시간", 120 to "2시간").forEach { (m, t) ->
                     Chip(t, selected = minutes == m) { setMinutes(m) }
                 }
             }
-            Text("▲▼ 시간 · ◀▶ 분", style = scrText(11.sp, Scr.faint), modifier = Modifier.padding(top = 4.dp))
+            Text(
+                "바늘을 돌리거나 ▲▼ 1시간 · ◀▶ 5분",
+                style = scrText(11.sp, Scr.faint),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+            )
 
             Spacer(Modifier.height(12.dp))
             val count = UnlockRules.reasonCharCount(reason)
@@ -592,32 +591,6 @@ private fun UnlockWaitScreen(
 @Composable
 private fun Label(text: String, modifier: Modifier = Modifier) =
     Text(text, style = scrText(14.sp, Scr.dim), modifier = modifier)
-
-@Composable
-private fun Stepper(unit: String, value: Int, onMinus: () -> Unit, onPlus: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        RoundKey("−", onMinus)
-        Text(
-            "$value",
-            style = scrText(28.sp, weight = FontWeight.Bold),
-            modifier = Modifier.padding(start = 8.dp),
-        )
-        Text(unit, style = scrText(14.sp, Scr.dim), modifier = Modifier.padding(start = 2.dp, end = 8.dp))
-        RoundKey("+", onPlus)
-    }
-}
-
-@Composable
-private fun RoundKey(text: String, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(Scr.panel)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) { Text(text, style = scrText(18.sp, weight = FontWeight.Bold)) }
-}
 
 @Composable
 private fun Chip(text: String, selected: Boolean = false, onClick: () -> Unit) {
