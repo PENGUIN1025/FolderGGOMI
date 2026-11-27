@@ -24,8 +24,8 @@ android {
         release {
             // 실제 AdMob 앱 ID (접다 - 폴더폰 모드)
             manifestPlaceholders["admobAppId"] = "ca-app-pub-5192264798199858~4163105584"
-            // 보상형 광고 단위 ID: 받기 전까지 테스트 단위 (실제 앱 ID와 함께 써도 동작함)
-            buildConfigField("String", "REWARDED_AD_UNIT", "\"ca-app-pub-3940256099942544/5224354917\"")
+            // 실제 보상형 광고 단위 (해제 보상형)
+            buildConfigField("String", "REWARDED_AD_UNIT", "\"ca-app-pub-5192264798199858/8186111076\"")
             // 앱 크기 줄이기 (쓰지 않는 코드·리소스 제거)
             isMinifyEnabled = true
             isShrinkResources = true
