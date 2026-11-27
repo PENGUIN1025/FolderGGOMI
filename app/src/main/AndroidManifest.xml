@@ -29,6 +29,11 @@
         android:supportsRtl="false"
         android:theme="@style/Theme.Jeopda">
 
+        <!-- AdMob 앱 ID (지금은 테스트 ID) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
+
         <!-- 홈(런처) 화면. 폴더폰 모드에서는 폴더폰 화면, 스마트폰 모드에서는 원래 홈 앱으로 중계 -->
         <activity
             android:name=".MainActivity"

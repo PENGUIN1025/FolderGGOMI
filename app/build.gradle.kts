@@ -14,6 +14,10 @@ android {
         targetSdk = 36
         versionCode = 3
         versionName = "0.2.1"
+
+        // AdMob: 실제 계정이 생기기 전까지 구글 공식 테스트 ID ("Test Ad" 표시, 수익 없음)
+        manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+        buildConfigField("String", "REWARDED_AD_UNIT", "\"ca-app-pub-3940256099942544/5224354917\"")
     }
 
     buildTypes {
@@ -50,6 +54,9 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
+    // 보상형 광고 (사용자 승인 2026-11-27): Google Mobile Ads SDK, 유럽·영국 개인정보 동의(UMP)
+    implementation("com.google.android.gms:play-services-ads:25.5.0")
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
