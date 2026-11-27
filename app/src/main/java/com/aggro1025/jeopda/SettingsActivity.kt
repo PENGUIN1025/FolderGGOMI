@@ -466,6 +466,8 @@ private val OPEN_SOURCE = listOf(
     "Android Jetpack (AndroidX: Core, Activity, Lifecycle, Compose UI·Foundation·Material3)" to "Apache License 2.0",
     "Material Icons (Compose material-icons-core, 아이콘 모양 일부 포함)" to "Apache License 2.0",
     "Kotlin 표준 라이브러리, kotlinx.coroutines" to "Apache License 2.0",
+    "Google Play Billing Library (500원 결제)" to
+        "Google 독점 소프트웨어 · Google Play 개발자 배포 계약과 결제 정책 적용",
     "Google Mobile Ads SDK, User Messaging Platform (광고·개인정보 동의)" to
         "Google 독점 소프트웨어 · Google API 서비스 약관과 AdMob 정책 적용 (일부 오픈소스 부품은 각 라이선스를 따름)",
 )

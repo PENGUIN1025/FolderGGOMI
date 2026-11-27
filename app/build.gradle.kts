@@ -63,6 +63,8 @@ dependencies {
     // 보상형 광고 (사용자 승인 2026-11-27): Google Mobile Ads SDK, 유럽·영국 개인정보 동의(UMP)
     implementation("com.google.android.gms:play-services-ads:25.5.0")
     implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+    // 500원 결제 (사용자 승인 2026-11-27): Google Play Billing
+    implementation("com.android.billingclient:billing-ktx:8.3.0")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
 

@@ -36,6 +36,11 @@ class AppPrefs(context: Context) {
         get() = sp.getInt(KEY_FREE_USED, 1)
         set(v) { sp.edit().putInt(KEY_FREE_USED, v).commit() }
 
+    /** 이미 무료 횟수를 채워 준 결제 토큰 (같은 결제로 두 번 채우지 않게, 기기 안에만 저장) */
+    var grantedPurchaseTokens: Set<String>
+        get() = sp.getStringSet(KEY_GRANTED_TOKENS, emptySet()).orEmpty().toSet()
+        set(v) { sp.edit().putStringSet(KEY_GRANTED_TOKENS, v.toList().takeLast(50).toSet()).commit() }
+
     /** 스마트폰 모드 종료 시점(부팅 후 경과 시간 ms)과 그때의 부팅 번호. 시계를 돌려도 남은 시간이 늘지 않게 */
     var smartEndElapsed: Long
         get() = sp.getLong(KEY_SMART_END_ELAPSED, 0L)
@@ -154,6 +159,7 @@ class AppPrefs(context: Context) {
         const val MAX_ALLOWED_NOTIF_APPS = 3
         private const val KEY_SMART_END_ELAPSED = "smart_end_elapsed"
         private const val KEY_FREE_USED = "free_used_count"
+        private const val KEY_GRANTED_TOKENS = "granted_purchase_tokens"
         private const val KEY_SMART_BOOT = "smart_boot"
         private const val KEY_ANCHOR_WALL = "anchor_wall"
         private const val KEY_ANCHOR_ELAPSED = "anchor_elapsed"

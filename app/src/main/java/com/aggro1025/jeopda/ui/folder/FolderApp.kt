@@ -88,6 +88,8 @@ interface FolderActions {
     fun isFreeAvailable(): Boolean = freeRemaining() > 0
     /** 오늘 남은 무료 해제 횟수 */
     fun freeRemaining(): Int
+    /** 500원 결제로 오늘 무료 해제 다시 채우기 */
+    fun buyRefill() = Unit
     /** 알림 차단(알림 접근 권한)이 켜져 있는지 */
     fun isNotificationBlockOn(): Boolean
     /** 다른 앱 막기(사용 기록·다른 앱 위에 표시 권한)가 켜져 있는지 */
@@ -167,8 +169,8 @@ fun FolderApp(
                 add(
                     MethodOption(
                         UnlockMethod.PAY, "500원으로 무료 해제 다시 채우기",
-                        if (left > 0) "무료가 ${left}회 남아 있어요" else "오늘 무료 ${UnlockRules.FREE_PER_DAY}회가 다시 생겨요 · 준비 중",
-                        false,
+                        if (left > 0) "무료가 ${left}회 남아 있어요" else "결제하면 오늘 무료 ${UnlockRules.FREE_PER_DAY}회가 다시 생겨요",
+                        left == 0,
                     ),
                 )
                 if (devUnlock) add(MethodOption(UnlockMethod.DEV, "개발용 해제", "디버그 빌드에만 보여요", true))
@@ -176,7 +178,8 @@ fun FolderApp(
             val sel = screen.selected.coerceIn(options.indices)
             val choose: (Int) -> Unit = { i ->
                 val o = options.getOrNull(i)
-                if (o != null && o.enabled) onScreen(Screen.UnlockInput(o.method))
+                if (o != null && o.enabled && o.method == UnlockMethod.PAY) actions.buyRefill()
+                else if (o != null && o.enabled) onScreen(Screen.UnlockInput(o.method))
                 else if (o != null) onScreen(Screen.UnlockMethod(i))
             }
             val onKey: (FolderKey) -> Unit = { k ->

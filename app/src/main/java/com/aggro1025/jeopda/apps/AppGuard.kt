@@ -42,7 +42,10 @@ object AppGuard {
     }
 
     fun isAllowed(pkg: String, allowed: Set<String>): Boolean =
-        pkg in allowed || pkg.contains("cellbroadcast", ignoreCase = true)
+        pkg in allowed ||
+            pkg.contains("cellbroadcast", ignoreCase = true) ||
+            // 500원 결제 창은 플레이스토어 화면으로 뜬다
+            (pkg == "com.android.vending" && com.aggro1025.jeopda.billing.RefillBilling.isPurchasing())
 
     /** 지금 화면 맨 앞 앱. 최근 [lookbackMs] 동안 바뀐 게 없으면 null */
     fun foregroundPackage(context: Context, lookbackMs: Long = 10_000L): String? {
