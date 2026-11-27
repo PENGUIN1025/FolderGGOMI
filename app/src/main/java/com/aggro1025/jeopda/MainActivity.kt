@@ -34,11 +34,13 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import com.aggro1025.jeopda.apps.AppPolicy
 import com.aggro1025.jeopda.apps.Apps
 import com.aggro1025.jeopda.apps.BuiltIn
 import com.aggro1025.jeopda.data.AppPrefs
 import com.aggro1025.jeopda.data.Contact
 import com.aggro1025.jeopda.data.ContactsRepo
+import com.aggro1025.jeopda.session.NotificationBlocker
 import com.aggro1025.jeopda.session.SmartSession
 import com.aggro1025.jeopda.session.UnlockMethod
 import com.aggro1025.jeopda.ui.JeopdaTheme
@@ -72,6 +74,7 @@ class MainActivity : ComponentActivity() {
     private var menu by mutableStateOf<List<MenuEntry>>(emptyList())
     private var contacts by mutableStateOf<List<Contact>>(emptyList())
     private var contactsPermitted by mutableStateOf(false)
+    private var notifBlockOn by mutableStateOf(true)
     private val relayTimes = ArrayDeque<Long>()
 
     /** 전화 걸기 권한을 묻는 동안 걸려던 번호 */
@@ -102,6 +105,7 @@ class MainActivity : ComponentActivity() {
                 if (mode == Mode.FOLDER && screen != Screen.Home) {
                     screen = when (val sc = screen) {
                         is Screen.UnlockInput -> Screen.UnlockMethod()
+                        is Screen.UnlockWait -> Screen.Home
                         is Screen.Contacts -> if (sc.keys.isNotEmpty()) Screen.Contacts(sc.keys.dropLast(1)) else Screen.Home
                         is Screen.Dialer -> if (sc.number.isNotEmpty()) Screen.Dialer(sc.number.dropLast(1)) else Screen.Home
                         else -> Screen.Home
@@ -154,6 +158,8 @@ class MainActivity : ComponentActivity() {
             mode = Mode.FOLDER
             menu = buildMenu()
             reloadContacts()
+            notifBlockOn = NotificationBlocker.isEnabled(this)
+            NotificationBlocker.sweepNow()
         }
     }
 
@@ -289,10 +295,13 @@ class MainActivity : ComponentActivity() {
                 return
             }
             val pkg = prefs.slotPackage(slot)
-            if (pkg == null || Apps.entry(this@MainActivity, pkg) == null) {
-                Toast.makeText(this@MainActivity, "${slot}번은 비어 있어요. 스마트폰 모드의 설정에서 정할 수 있어요", Toast.LENGTH_SHORT).show()
-            } else {
-                Apps.launchPackage(this@MainActivity, pkg)
+            when {
+                pkg == null || Apps.entry(this@MainActivity, pkg) == null ->
+                    Toast.makeText(this@MainActivity, "${slot}번은 비어 있어요. 스마트폰 모드의 설정에서 정할 수 있어요", Toast.LENGTH_SHORT).show()
+                // 이전 버전에서 넣어 둔 앱이 지금 규칙으로 막히는 경우
+                AppPolicy.menuBlockReason(this@MainActivity, pkg) != null ->
+                    Toast.makeText(this@MainActivity, AppPolicy.BLOCKED_MESSAGE, Toast.LENGTH_LONG).show()
+                else -> Apps.launchPackage(this@MainActivity, pkg)
             }
         }
 
@@ -340,6 +349,8 @@ class MainActivity : ComponentActivity() {
         }
 
         override fun isFreeAvailable(): Boolean = SmartSession.isFreeAvailableToday(this@MainActivity)
+
+        override fun isNotificationBlockOn(): Boolean = notifBlockOn
 
         override fun unlock(minutes: Int, reason: String, method: UnlockMethod) {
             SmartSession.start(this@MainActivity, minutes, reason, method)

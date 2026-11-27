@@ -3,12 +3,14 @@ package com.aggro1025.jeopda
 import android.Manifest
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -16,29 +18,23 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -59,18 +55,28 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.aggro1025.jeopda.apps.AppEntry
+import com.aggro1025.jeopda.apps.AppPolicy
 import com.aggro1025.jeopda.apps.Apps
 import com.aggro1025.jeopda.apps.BuiltIn
 import com.aggro1025.jeopda.data.AppPrefs
+import com.aggro1025.jeopda.session.NotificationBlocker
 import com.aggro1025.jeopda.session.SmartSession
 import com.aggro1025.jeopda.ui.JeopdaTheme
+import com.aggro1025.jeopda.ui.settings.NotifApp
+import com.aggro1025.jeopda.ui.settings.SettingsCallbacks
+import com.aggro1025.jeopda.ui.settings.SettingsDesign
+import com.aggro1025.jeopda.ui.settings.SettingsUi
+import com.aggro1025.jeopda.ui.settings.SetupStep
+import com.aggro1025.jeopda.ui.settings.SlotItem
+import com.aggro1025.jeopda.ui.settings.StepId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 /**
  * 설정·상태 화면. 앱 서랍의 "접다" 아이콘과 폴더폰 홈의 오른쪽 소프트키로 연다.
- * 메뉴 앱 편집은 최초 설정 중이거나 스마트폰 모드일 때만 가능하다 (요구사항 5장).
+ * 최초 실행 때는 단계별 권한 안내 화면 역할도 한다 (요구사항 3장 "권한 안내").
+ * 메뉴 앱·알림 허용 앱 편집은 최초 설정 중이거나 스마트폰 모드일 때만 가능하다 (요구사항 5장).
  */
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,6 +87,7 @@ class SettingsActivity : ComponentActivity() {
 
     private fun startFolderMode() {
         AppPrefs(this).setupDone = true
+        NotificationBlocker.sweepNow()
         goHome()
     }
 
@@ -94,6 +101,10 @@ class SettingsActivity : ComponentActivity() {
         finish()
     }
 }
+
+const val PRIVACY_URL = "https://penguin1025.github.io/jeopda-privacy/"
+
+private enum class PickerMode { MENU, NOTIF }
 
 @Composable
 private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
@@ -110,159 +121,164 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
         }
     }
 
-    val setupDone = remember(tick) { prefs.setupDone }
-    val smart = remember(tick) { SmartSession.isSmart(context) }
-    val editable = !setupDone || smart
-    val isHome = remember(tick) { Apps.isDefaultHome(context) }
-    val notifGranted = remember(tick) {
-        Build.VERSION.SDK_INT < 33 ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-    }
-    val exactOk = remember(tick) { SmartSession.canScheduleExact(context) }
-    val contactsGranted = remember(tick) {
-        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
-    }
-    val callGranted = remember(tick) {
-        ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED
-    }
-    val contactsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
-    val callLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
-
     val roleLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { tick++ }
-    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
+    val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
 
-    var pickSlot by remember { mutableStateOf<Int?>(null) }
+    var picker by remember { mutableStateOf<Pair<PickerMode, Int>?>(null) }
     var showLicenses by remember { mutableStateOf(false) }
+    var showHomeChoice by remember { mutableStateOf(false) }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            Modifier
-                .safeDrawingPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("접다 설정", fontSize = 24.sp)
+    val ui = remember(tick) { buildUi(context, prefs) }
 
-            // ---- 상태 ----
-            Section("지금 상태")
-            when {
-                !setupDone -> Body("아직 폴더폰 모드를 켜지 않았어요. 아래 설정을 마치고 시작하세요.")
-                smart -> {
-                    Body("스마트폰 모드 · ${SmartSession.formatTime(SmartSession.endAt(context))}에 끝나요")
-                    Button(onClick = onReturn) { Text("폴더폰으로 돌아가기") }
-                    Hint("지금 돌아가면 남은 시간은 사라져요")
+    val cb = object : SettingsCallbacks {
+        override fun onStep(id: StepId) {
+            when (id) {
+                StepId.HOME -> requestHomeRole(context, roleLauncher::launch)
+                StepId.NOTIF_ACCESS -> openNotificationAccess(context)
+                StepId.POST_NOTIF -> if (Build.VERSION.SDK_INT >= 33) permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                StepId.EXACT_ALARM -> if (Build.VERSION.SDK_INT >= 31) {
+                    context.startSafely(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}")))
                 }
-                else -> Body("폴더폰 모드")
+                StepId.CONTACTS -> permLauncher.launch(Manifest.permission.READ_CONTACTS)
+                StepId.CALL -> permLauncher.launch(Manifest.permission.CALL_PHONE)
             }
+        }
 
-            // ---- 권한 ----
-            Section("필요한 설정")
-            PermissionRow(
-                title = "기본 홈 앱",
-                desc = "접다를 홈 앱으로 지정하면 폴더폰 화면이 켜져요",
-                ok = isHome,
-            ) { requestHomeRole(context, roleLauncher::launch) }
-            if (Build.VERSION.SDK_INT >= 33) {
-                PermissionRow(
-                    title = "알림 표시",
-                    desc = "스마트폰 모드 남은 시간과 종료 5분 전에 알려드려요",
-                    ok = notifGranted,
-                ) { notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
-            }
-            PermissionRow(
-                title = "연락처",
-                desc = "연락처를 폴더폰 화면에 보여주기 위해 필요해요. 기기 밖으로 보내지 않아요",
-                ok = contactsGranted,
-            ) { contactsLauncher.launch(Manifest.permission.READ_CONTACTS) }
-            PermissionRow(
-                title = "전화 걸기",
-                desc = "번호를 누르면 바로 전화를 걸어요 (끄면 전화 앱에 번호만 채워 줘요)",
-                ok = callGranted,
-            ) { callLauncher.launch(Manifest.permission.CALL_PHONE) }
-            if (Build.VERSION.SDK_INT >= 31) {
-                PermissionRow(
-                    title = "알람 및 리마인더",
-                    desc = "종료 5분 전 알림을 정확한 시각에 보내요. 꺼져 있으면 몇 분 늦을 수 있어요",
-                    ok = exactOk,
-                ) {
-                    context.startSafely(
-                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}")),
-                    )
-                }
-            }
+        override fun onStart() = onStartFolder()
+        override fun onReturnToFolder() = onReturn()
+        override fun onSlot(slot: Int) {
+            picker = PickerMode.MENU to slot
+        }
 
-            // ---- 스마트폰 모드 홈 ----
-            Section("스마트폰 모드에서 쓸 홈 화면")
-            val homes = remember(tick) { Apps.otherHomeApps(context) }
-            if (homes.isEmpty()) {
-                Body("다른 홈 앱이 없어서, 스마트폰 모드에서는 접다의 단순한 앱 목록을 보여줘요.")
-            } else {
-                var selected by remember(tick) { mutableStateOf(prefs.smartHomeComponent ?: homes.first().first.flattenToString()) }
-                homes.forEach { (comp, label) ->
-                    val key = comp.flattenToString()
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { selected = key; prefs.smartHomeComponent = key },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected == key, onClick = { selected = key; prefs.smartHomeComponent = key })
-                        Text(label)
-                    }
-                }
-                Hint("스마트폰 모드에서는 이 홈 화면이 그대로 떠요. 시간이 끝나면 홈 버튼에서 폴더폰 화면이 나와요.")
-            }
+        override fun onClearSlot(slot: Int) {
+            prefs.setSlotPackage(slot, null)
+            tick++
+        }
 
-            // ---- 메뉴 ----
-            Section("폴더폰 메뉴")
-            BuiltIn.entries.forEach {
-                val where = if (it == BuiltIn.PHONE || it == BuiltIn.CONTACTS) "폴더폰 화면" else "기본 앱"
-                Body("${it.slot}  ${it.label}  ($where)")
-            }
-            AppPrefs.USER_SLOTS.forEach { slot ->
-                val pkg = remember(tick, pickSlot) { prefs.slotPackage(slot) }
-                val label = remember(pkg) { pkg?.let { Apps.entry(context, it)?.label } }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("$slot  ${label ?: "비어 있음"}", Modifier.weight(1f))
-                    if (editable) {
-                        TextButton(onClick = { pickSlot = slot }) { Text("변경") }
-                        if (pkg != null) TextButton(onClick = { prefs.setSlotPackage(slot, null); tick++ }) { Text("비우기") }
-                    }
-                }
-            }
-            if (!editable) Hint("폴더폰 모드에서는 보기만 할 수 있어요. 바꾸려면 먼저 해제하세요.")
+        override fun onAddNotifApp() {
+            picker = PickerMode.NOTIF to 0
+        }
 
-            // ---- 시작 ----
-            if (!setupDone) {
-                HorizontalDivider()
-                Button(onClick = onStartFolder, enabled = isHome, modifier = Modifier.fillMaxWidth()) {
-                    Text("폴더폰 모드 시작")
-                }
-                if (!isHome) Hint("먼저 접다를 기본 홈 앱으로 지정해 주세요")
-            }
+        override fun onRemoveNotifApp(pkg: String) {
+            prefs.allowedNotifApps = prefs.allowedNotifApps - pkg
+            tick++
+        }
 
-            Spacer(Modifier.height(20.dp))
-            Hint("접다 ${BuildConfig.VERSION_NAME}")
-            TextButton(onClick = { showLicenses = true }) { Text("오픈소스 라이선스") }
+        override fun onSmartHome() {
+            showHomeChoice = true
+        }
+
+        override fun onPrivacy() = context.startSafely(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL)))
+        override fun onLicenses() {
+            showLicenses = true
         }
     }
 
-    if (showLicenses) LicensesDialog(onDismiss = { showLicenses = false })
+    SettingsDesign(ui, cb)
 
-    pickSlot?.let { slot ->
+    picker?.let { (mode, slot) ->
         AppPickerDialog(
-            onDismiss = { pickSlot = null },
+            mode = mode,
+            exclude = if (mode == PickerMode.NOTIF) prefs.allowedNotifApps + context.packageName else setOf(context.packageName),
+            onDismiss = { picker = null },
             onPick = { pkg ->
-                prefs.setSlotPackage(slot, pkg)
-                pickSlot = null
+                if (mode == PickerMode.MENU) {
+                    prefs.setSlotPackage(slot, pkg)
+                } else if (prefs.allowedNotifApps.size < AppPrefs.MAX_ALLOWED_NOTIF_APPS) {
+                    prefs.allowedNotifApps = prefs.allowedNotifApps + pkg
+                }
+                picker = null
+                tick++
+            },
+        )
+    }
+    if (showLicenses) LicensesDialog(onDismiss = { showLicenses = false })
+    if (showHomeChoice) {
+        HomeChoiceDialog(
+            current = prefs.smartHomeComponent,
+            onDismiss = { showHomeChoice = false },
+            onPick = {
+                prefs.smartHomeComponent = it
+                showHomeChoice = false
                 tick++
             },
         )
     }
 }
 
-private fun requestHomeRole(context: android.content.Context, launch: (Intent) -> Unit) {
+private fun granted(context: Context, perm: String) =
+    ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
+
+private fun buildUi(context: Context, prefs: AppPrefs): SettingsUi {
+    val setupDone = prefs.setupDone
+    val smart = SmartSession.isSmart(context)
+    val isHome = Apps.isDefaultHome(context)
+    val steps = buildList {
+        add(SetupStep(StepId.HOME, "기본 홈 앱", "접다를 홈 앱으로 지정하면 폴더폰 화면이 켜져요", isHome, required = true))
+        add(
+            SetupStep(
+                StepId.NOTIF_ACCESS, "알림 접근",
+                "폴더폰 모드에서 필요한 알림만 남겨요. 알림 내용은 저장하거나 보내지 않아요",
+                NotificationBlocker.isEnabled(context), required = true,
+            ),
+        )
+        if (Build.VERSION.SDK_INT >= 33) {
+            add(
+                SetupStep(
+                    StepId.POST_NOTIF, "알림 표시", "스마트폰 모드 남은 시간과 종료 5분 전에 알려요",
+                    granted(context, Manifest.permission.POST_NOTIFICATIONS), required = false,
+                ),
+            )
+        }
+        if (Build.VERSION.SDK_INT >= 31) {
+            add(
+                SetupStep(
+                    StepId.EXACT_ALARM, "알람 및 리마인더", "종료 5분 전 알림을 정확한 시각에 보내요",
+                    SmartSession.canScheduleExact(context), required = false,
+                ),
+            )
+        }
+        add(
+            SetupStep(
+                StepId.CONTACTS, "연락처", "폴더폰 화면에 연락처를 보여줘요. 기기 밖으로 보내지 않아요",
+                granted(context, Manifest.permission.READ_CONTACTS), required = false,
+            ),
+        )
+        add(
+            SetupStep(
+                StepId.CALL, "전화 걸기", "번호를 누르면 바로 전화를 걸어요",
+                granted(context, Manifest.permission.CALL_PHONE), required = false,
+            ),
+        )
+    }
+    fun icon(pkg: String?) = pkg?.let { Apps.entry(context, it)?.icon }?.toBitmap(108, 108)?.asImageBitmap()
+    val slots = BuiltIn.entries.map { SlotItem(it.slot, it.label, icon(Apps.builtInPackage(context, it))) } +
+        AppPrefs.USER_SLOTS.map { slot ->
+            val app = prefs.slotPackage(slot)?.let { Apps.entry(context, it) }
+            if (app != null) SlotItem(slot, app.label, icon(app.packageName)) else SlotItem(slot, "비어 있음", empty = true)
+        }
+    val homes = Apps.otherHomeApps(context)
+    val homeLabel = homes.firstOrNull { it.first.flattenToString() == prefs.smartHomeComponent }?.second
+        ?: homes.firstOrNull()?.second ?: "접다 앱 목록"
+    return SettingsUi(
+        version = BuildConfig.VERSION_NAME,
+        modeText = when {
+            !setupDone -> "처음 설정 중"
+            smart -> "스마트폰 모드"
+            else -> "폴더폰 모드"
+        },
+        setupDone = setupDone,
+        smartEndText = if (smart) "${SmartSession.formatTime(SmartSession.endAt(context))}에 끝나요" else null,
+        homeLost = setupDone && !isHome,
+        steps = steps,
+        slots = slots,
+        allowedNotifApps = prefs.allowedNotifApps.map { NotifApp(it, Apps.entry(context, it)?.label ?: it) },
+        editable = !setupDone || smart,
+        smartHomeLabel = homeLabel,
+    )
+}
+
+private fun requestHomeRole(context: Context, launch: (Intent) -> Unit) {
     if (Build.VERSION.SDK_INT >= 29) {
         val rm = context.getSystemService(RoleManager::class.java)
         if (rm != null && rm.isRoleAvailable(RoleManager.ROLE_HOME) && !rm.isRoleHeld(RoleManager.ROLE_HOME)) {
@@ -277,7 +293,22 @@ private fun requestHomeRole(context: android.content.Context, launch: (Intent) -
     context.startSafely(Intent(Settings.ACTION_HOME_SETTINGS))
 }
 
-private fun android.content.Context.startSafely(intent: Intent) {
+/** 알림 접근 설정: 가능하면 접다 항목 화면으로 바로 */
+private fun openNotificationAccess(context: Context) {
+    if (Build.VERSION.SDK_INT >= 30) {
+        val detail = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+            .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, NotificationBlocker.component(context).flattenToString())
+        try {
+            context.startActivity(detail.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        } catch (e: ActivityNotFoundException) {
+            // 목록 화면으로
+        }
+    }
+    context.startSafely(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+}
+
+private fun Context.startSafely(intent: Intent) {
     try {
         startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (e: ActivityNotFoundException) {
@@ -285,18 +316,32 @@ private fun android.content.Context.startSafely(intent: Intent) {
     }
 }
 
+private data class PickerRow(val app: AppEntry, val blockReason: String?)
+
 @Composable
-private fun AppPickerDialog(onDismiss: () -> Unit, onPick: (String) -> Unit) {
+private fun AppPickerDialog(mode: PickerMode, exclude: Set<String>, onDismiss: () -> Unit, onPick: (String) -> Unit) {
     val context = LocalContext.current
-    var apps by remember { mutableStateOf<List<AppEntry>?>(null) }
+    var rows by remember { mutableStateOf<List<PickerRow>?>(null) }
     var query by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) { apps = withContext(Dispatchers.IO) { Apps.launchableApps(context) } }
+    LaunchedEffect(Unit) {
+        rows = withContext(Dispatchers.IO) {
+            val browsers = AppPolicy.browserPackages(context)
+            Apps.launchableApps(context)
+                .filter { it.packageName !in exclude }
+                .map { app ->
+                    val reason = if (mode == PickerMode.MENU) AppPolicy.menuBlockReason(context, app.packageName, browsers) else null
+                    PickerRow(app, reason)
+                }
+                // 넣을 수 있는 앱을 위로
+                .sortedBy { it.blockReason != null }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text("닫기") } },
-        title = { Text("메뉴에 넣을 앱") },
+        title = { Text(if (mode == PickerMode.MENU) "메뉴에 넣을 앱" else "알림을 받을 앱") },
         text = {
             Column {
                 OutlinedTextField(
@@ -306,27 +351,65 @@ private fun AppPickerDialog(onDismiss: () -> Unit, onPick: (String) -> Unit) {
                     placeholder = { Text("검색") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                val list = apps
+                val list = rows
                 if (list == null) {
                     Text("불러오는 중…", Modifier.padding(16.dp))
                 } else {
-                    val filtered = list.filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
+                    val filtered = list.filter { query.isBlank() || it.app.label.contains(query, ignoreCase = true) }
                     LazyColumn(Modifier.heightIn(max = 420.dp).padding(top = 8.dp)) {
-                        items(filtered, key = { it.packageName }) { app ->
+                        items(filtered, key = { it.app.packageName }) { row ->
+                            val blocked = row.blockReason != null
                             Row(
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable { onPick(app.packageName) }
+                                    .clickable {
+                                        if (blocked) {
+                                            Toast.makeText(context, AppPolicy.BLOCKED_MESSAGE, Toast.LENGTH_LONG).show()
+                                        } else {
+                                            onPick(row.app.packageName)
+                                        }
+                                    }
                                     .padding(vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                app.icon?.let {
-                                    val bmp = remember(app.packageName) { it.toBitmap(96, 96).asImageBitmap() }
-                                    Image(bmp, null, Modifier.size(32.dp))
+                                row.app.icon?.let {
+                                    val bmp = remember(row.app.packageName) { it.toBitmap(96, 96).asImageBitmap() }
+                                    Image(bmp, null, Modifier.size(32.dp), alpha = if (blocked) 0.35f else 1f)
                                 }
-                                Text(app.label, Modifier.padding(start = 12.dp))
+                                Column(Modifier.padding(start = 12.dp)) {
+                                    val dim = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                                    Text(row.app.label, color = if (blocked) dim else MaterialTheme.colorScheme.onSurface)
+                                    if (blocked) Text("넣을 수 없음 · ${row.blockReason}", fontSize = 12.sp, color = dim)
+                                }
                             }
                         }
+                    }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun HomeChoiceDialog(current: String?, onDismiss: () -> Unit, onPick: (String) -> Unit) {
+    val context = LocalContext.current
+    val homes = remember { Apps.otherHomeApps(context) }
+    val selected = current ?: homes.firstOrNull()?.first?.flattenToString()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("닫기") } },
+        title = { Text("스마트폰 모드에서 쓸 홈 화면") },
+        text = {
+            Column {
+                if (homes.isEmpty()) Text("다른 홈 앱이 없어서, 스마트폰 모드에서는 접다의 단순한 앱 목록을 보여줘요.")
+                homes.forEach { (comp, label) ->
+                    val key = comp.flattenToString()
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onPick(key) },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = selected == key, onClick = { onPick(key) })
+                        Text(label)
                     }
                 }
             }
@@ -365,28 +448,3 @@ private fun LicensesDialog(onDismiss: () -> Unit) {
         },
     )
 }
-
-@Composable
-private fun PermissionRow(title: String, desc: String, ok: Boolean, onClick: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 16.sp)
-            Text(desc, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-        }
-        if (ok) Text("✓ 완료", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
-        else OutlinedButton(onClick = onClick, modifier = Modifier.padding(start = 8.dp)) { Text("설정") }
-    }
-}
-
-@Composable
-private fun Section(text: String) {
-    Spacer(Modifier.height(6.dp))
-    Text(text, fontSize = 14.sp, color = MaterialTheme.colorScheme.primary)
-}
-
-@Composable
-private fun Body(text: String) = Text(text, fontSize = 15.sp)
-
-@Composable
-private fun Hint(text: String) =
-    Text(text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))

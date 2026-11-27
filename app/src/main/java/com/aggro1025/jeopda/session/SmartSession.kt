@@ -12,14 +12,18 @@ import com.aggro1025.jeopda.MainActivity
 import com.aggro1025.jeopda.R
 import com.aggro1025.jeopda.SettingsActivity
 import com.aggro1025.jeopda.data.AppPrefs
+import com.aggro1025.jeopda.data.Clock
 import com.aggro1025.jeopda.data.UnlockRules
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
 
 enum class UnlockMethod(val label: String) {
     FREE("무료"),
+    WAIT("1분 대기"),
     AD("광고"),
     PAY("결제"),
     DEV("개발용"),
@@ -39,18 +43,35 @@ object SmartSession {
     const val ACTION_WARN = "com.aggro1025.jeopda.WARN"
     const val ACTION_EXPIRE = "com.aggro1025.jeopda.EXPIRE"
 
-    fun isSmart(context: Context, now: Long = System.currentTimeMillis()): Boolean =
-        AppPrefs(context).smartEndAt > now
+    /**
+     * 남은 시간(ms). 같은 부팅 안에서는 부팅 후 경과 시간으로 계산해서 폰 시계를 돌려도 바뀌지 않는다.
+     * 재부팅 뒤에는 믿을 수 있는 시각(Clock.now) 기준으로 다시 계산한다.
+     */
+    fun remainingMs(context: Context): Long {
+        val prefs = AppPrefs(context)
+        if (prefs.smartEndAt == 0L) return 0L
+        return if (prefs.smartBoot == Clock.bootCount(context)) {
+            prefs.smartEndElapsed - Clock.elapsed()
+        } else {
+            prefs.smartEndAt - Clock.now(context)
+        }.coerceAtLeast(0L)
+    }
 
-    fun endAt(context: Context): Long = AppPrefs(context).smartEndAt
+    fun isSmart(context: Context): Boolean = remainingMs(context) > 0
+
+    /** 화면 표시용 종료 시각 (지금 폰 시계 + 남은 시간) */
+    fun endAt(context: Context): Long = System.currentTimeMillis() + remainingMs(context)
 
     fun start(context: Context, minutes: Int, reason: String, method: UnlockMethod) {
         require(UnlockRules.isValidDuration(minutes))
         val prefs = AppPrefs(context)
-        val now = System.currentTimeMillis()
-        prefs.smartEndAt = now + minutes * 60_000L
-        // 무료 1회는 해제가 완료되는 이 시점에만 소모한다 (4장 공통 규칙 6)
-        if (method == UnlockMethod.FREE) prefs.lastFreeDate = LocalDate.now().toString()
+        val now = Clock.now(context)
+        val duration = minutes * 60_000L
+        prefs.smartEndAt = now + duration
+        prefs.smartEndElapsed = Clock.elapsed() + duration
+        prefs.smartBoot = Clock.bootCount(context)
+        // 무료 1회는 해제가 완료되는 이 시점에만 소모한다 (4장 공통 규칙 6). 날짜는 믿을 수 있는 시각 기준
+        if (method == UnlockMethod.FREE) prefs.lastFreeDate = today(context).toString()
         prefs.addReason(AppPrefs.ReasonEntry(now, minutes, method.name, reason.trim()))
         nm(context).cancel(NOTIF_ALERT)
         scheduleAlarms(context)
@@ -59,47 +80,61 @@ object SmartSession {
 
     /** 조기 복귀 또는 만료. 남은 시간은 소멸한다 */
     fun end(context: Context) {
-        AppPrefs(context).smartEndAt = 0L
+        val prefs = AppPrefs(context)
+        prefs.smartEndAt = 0L
+        prefs.smartEndElapsed = 0L
         cancelAlarms(context)
         nm(context).cancel(NOTIF_ONGOING)
+        // 폴더폰 모드로 돌아왔으니 허용하지 않은 알림을 정리한다
+        NotificationBlocker.sweepNow()
     }
 
     /** 앱 시작·재부팅·홈 진입 때 저장된 상태와 알람/알림을 맞춘다 */
     fun sync(context: Context) {
-        val endAt = endAt(context)
-        when {
-            endAt == 0L -> Unit
-            endAt <= System.currentTimeMillis() -> end(context)
-            else -> {
-                scheduleAlarms(context)
-                showOngoing(context)
-            }
+        val prefs = AppPrefs(context)
+        if (prefs.smartEndAt == 0L) return
+        val remaining = remainingMs(context)
+        if (remaining <= 0L) {
+            end(context)
+            return
         }
+        // 재부팅 뒤에는 경과 시간 기준을 새로 잡는다
+        val boot = Clock.bootCount(context)
+        if (prefs.smartBoot != boot) {
+            prefs.smartEndElapsed = Clock.elapsed() + remaining
+            prefs.smartBoot = boot
+        }
+        scheduleAlarms(context)
+        showOngoing(context)
     }
 
+    fun today(context: Context): LocalDate =
+        Instant.ofEpochMilli(Clock.now(context)).atZone(ZoneId.systemDefault()).toLocalDate()
+
     fun isFreeAvailableToday(context: Context): Boolean =
-        UnlockRules.isFreeAvailable(AppPrefs(context).lastFreeDate, LocalDate.now())
+        UnlockRules.isFreeAvailable(AppPrefs(context).lastFreeDate, today(context))
 
     fun canScheduleExact(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am(context).canScheduleExactAlarms()
 
-    // ---- 알람 ----
+    // ---- 알람 (부팅 후 경과 시간 기준이라 시계를 바꿔도 제때 울린다) ----
 
     private fun scheduleAlarms(context: Context) {
-        val endAt = endAt(context)
-        val warnAt = endAt - UnlockRules.WARNING_BEFORE_MILLIS
-        if (warnAt > System.currentTimeMillis()) setAlarm(context, warnAt, alarmIntent(context, ACTION_WARN))
+        val remaining = remainingMs(context)
+        val nowElapsed = Clock.elapsed()
+        val warnIn = remaining - UnlockRules.WARNING_BEFORE_MILLIS
+        if (warnIn > 0) setAlarm(context, nowElapsed + warnIn, alarmIntent(context, ACTION_WARN))
         else am(context).cancel(alarmIntent(context, ACTION_WARN))
-        setAlarm(context, endAt, alarmIntent(context, ACTION_EXPIRE))
+        setAlarm(context, nowElapsed + remaining, alarmIntent(context, ACTION_EXPIRE))
     }
 
-    private fun setAlarm(context: Context, at: Long, pi: PendingIntent) {
+    private fun setAlarm(context: Context, atElapsed: Long, pi: PendingIntent) {
         val am = am(context)
         if (canScheduleExact(context)) {
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            am.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, atElapsed, pi)
         } else {
             // "알람 및 리마인더" 권한이 꺼져 있으면 몇 분 늦을 수 있는 알람으로 대체
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, atElapsed, pi)
         }
     }
 

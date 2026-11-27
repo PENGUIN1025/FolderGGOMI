@@ -58,6 +58,17 @@
             </intent-filter>
         </activity>
 
+        <!-- 폴더폰 모드에서 허용하지 않은 앱의 알림 삭제 (알림 내용은 저장·전송하지 않음) -->
+        <service
+            android:name=".session.NotificationBlocker"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <receiver
             android:name=".session.SessionReceiver"
             android:exported="false" />

@@ -31,6 +31,53 @@ class AppPrefs(context: Context) {
         get() = sp.getString(KEY_LAST_FREE_DATE, null)
         set(v) { sp.edit().putString(KEY_LAST_FREE_DATE, v).commit() }
 
+    /** 스마트폰 모드 종료 시점(부팅 후 경과 시간 ms)과 그때의 부팅 번호. 시계를 돌려도 남은 시간이 늘지 않게 */
+    var smartEndElapsed: Long
+        get() = sp.getLong(KEY_SMART_END_ELAPSED, 0L)
+        set(v) { sp.edit().putLong(KEY_SMART_END_ELAPSED, v).commit() }
+
+    var smartBoot: Int
+        get() = sp.getInt(KEY_SMART_BOOT, -1)
+        set(v) { sp.edit().putInt(KEY_SMART_BOOT, v).commit() }
+
+    /** 믿을 수 있는 시각의 기준점 (네트워크 시간 또는 이번 부팅에서 처음 본 시각) */
+    var clockAnchor: TrustedTime.Anchor?
+        get() {
+            val boot = sp.getInt(KEY_ANCHOR_BOOT, Int.MIN_VALUE)
+            if (boot == Int.MIN_VALUE) return null
+            return TrustedTime.Anchor(
+                sp.getLong(KEY_ANCHOR_WALL, 0L),
+                sp.getLong(KEY_ANCHOR_ELAPSED, 0L),
+                boot,
+                sp.getBoolean(KEY_ANCHOR_NETWORK, false),
+            )
+        }
+        set(v) {
+            sp.edit().apply {
+                if (v == null) {
+                    remove(KEY_ANCHOR_BOOT)
+                } else {
+                    putLong(KEY_ANCHOR_WALL, v.wall)
+                    putLong(KEY_ANCHOR_ELAPSED, v.elapsed)
+                    putInt(KEY_ANCHOR_BOOT, v.boot)
+                    putBoolean(KEY_ANCHOR_NETWORK, v.fromNetwork)
+                }
+            }.commit()
+        }
+
+    /** 폴더폰 모드에서도 알림을 받을 앱 (최대 3개) */
+    var allowedNotifApps: Set<String>
+        get() = sp.getStringSet(KEY_ALLOWED_NOTIF, emptySet()).orEmpty().toSet()
+        set(v) {
+            require(v.size <= MAX_ALLOWED_NOTIF_APPS)
+            sp.edit().putStringSet(KEY_ALLOWED_NOTIF, v).apply()
+        }
+
+    /** 홈 앱 해제 알림을 마지막으로 보낸 시각 (너무 자주 보내지 않게) */
+    var lastHomeWarnAt: Long
+        get() = sp.getLong(KEY_HOME_WARN, 0L)
+        set(v) = sp.edit().putLong(KEY_HOME_WARN, v).apply()
+
     /** 스마트폰 모드에서 띄울 원래 홈 앱 (패키지/액티비티). null이면 자동 선택 */
     var smartHomeComponent: String?
         get() = sp.getString(KEY_SMART_HOME, null)
@@ -73,6 +120,15 @@ class AppPrefs(context: Context) {
 
     companion object {
         val USER_SLOTS = 6..9
+        const val MAX_ALLOWED_NOTIF_APPS = 3
+        private const val KEY_SMART_END_ELAPSED = "smart_end_elapsed"
+        private const val KEY_SMART_BOOT = "smart_boot"
+        private const val KEY_ANCHOR_WALL = "anchor_wall"
+        private const val KEY_ANCHOR_ELAPSED = "anchor_elapsed"
+        private const val KEY_ANCHOR_BOOT = "anchor_boot"
+        private const val KEY_ANCHOR_NETWORK = "anchor_network"
+        private const val KEY_ALLOWED_NOTIF = "allowed_notif_apps"
+        private const val KEY_HOME_WARN = "last_home_warn"
         private const val KEY_SETUP_DONE = "setup_done"
         private const val KEY_SMART_END_AT = "smart_end_at"
         private const val KEY_LAST_FREE_DATE = "last_free_date"

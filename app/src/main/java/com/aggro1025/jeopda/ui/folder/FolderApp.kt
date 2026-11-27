@@ -28,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -83,6 +84,8 @@ interface FolderActions {
     fun requestContactsPermission()
     fun openSettings()
     fun isFreeAvailable(): Boolean
+    /** 알림 차단(알림 접근 권한)이 켜져 있는지 */
+    fun isNotificationBlockOn(): Boolean
     fun unlock(minutes: Int, reason: String, method: UnlockMethod)
 }
 
@@ -112,7 +115,9 @@ fun FolderApp(
                 }
             }
             BindKeys(router, onKey)
-            FolderPhone(null, SoftLabels("해제", "메뉴", "설정"), onKey) { HomeDisplay(actions.isFreeAvailable()) }
+            FolderPhone(null, SoftLabels("해제", "메뉴", "설정"), onKey) {
+                HomeDisplay(actions.isFreeAvailable(), actions.isNotificationBlockOn(), onFixNotif = { actions.openSettings() })
+            }
         }
 
         is Screen.Menu -> {
@@ -140,7 +145,8 @@ fun FolderApp(
             val free = actions.isFreeAvailable()
             val options = buildList {
                 add(MethodOption(UnlockMethod.FREE, "하루 1회 무료", if (free) "오늘 남아 있어요" else "오늘은 이미 썼어요", free))
-                add(MethodOption(UnlockMethod.AD, "광고 2개 보기", "준비 중", false))
+                // 광고(v0.2b)가 나오기 전까지는 광고 자리에 1분 기다리기
+                add(MethodOption(UnlockMethod.WAIT, "1분 기다리기", "광고 대신 잠시 기다리면 해제돼요", true))
                 add(MethodOption(UnlockMethod.PAY, "500원 결제", "준비 중", false))
                 if (devUnlock) add(MethodOption(UnlockMethod.DEV, "개발용 해제", "디버그 빌드에만 보여요", true))
             }
@@ -180,6 +186,7 @@ fun FolderApp(
         is Screen.UnlockInput -> UnlockInputScreen(screen.method, onScreen, actions, router)
         is Screen.Dialer -> DialerScreen(screen.number, contacts, onScreen, actions, router)
         is Screen.Contacts -> ContactsScreen(screen, contacts, onScreen, actions, router)
+        is Screen.UnlockWait -> UnlockWaitScreen(screen, onScreen, actions, router)
     }
 }
 
@@ -192,7 +199,7 @@ internal fun BindKeys(router: KeyRouter, onKey: (FolderKey) -> Unit) {
 // ---------------- 홈 (대기 화면) ----------------
 
 @Composable
-private fun HomeDisplay(freeAvailable: Boolean) {
+private fun HomeDisplay(freeAvailable: Boolean, notifBlockOn: Boolean, onFixNotif: () -> Unit) {
     val now = rememberNow()
     val date = remember(now / 60_000) { Date(now) }
 
@@ -218,23 +225,29 @@ private fun HomeDisplay(freeAvailable: Boolean) {
             }
         }
         Spacer(Modifier.weight(1f))
+        // 알림 차단이 꺼져 있으면 그 안내를 먼저 (누르면 설정으로)
+        val chipBase = Modifier
+            .align(Alignment.CenterHorizontally)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0x33000000))
         Row(
-            Modifier
-                .align(Alignment.CenterHorizontally)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0x33000000))
+            (if (notifBlockOn) chipBase else chipBase.clickable(onClick = onFixNotif))
                 .padding(horizontal = 12.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                Modifier
-                    .size(7.dp)
-                    .clip(CircleShape)
-                    .background(if (freeAvailable) Scr.accent else Scr.faint),
-            )
+            val dot = when {
+                !notifBlockOn -> Scr.warn
+                freeAvailable -> Scr.accent
+                else -> Scr.faint
+            }
+            Box(Modifier.size(7.dp).clip(CircleShape).background(dot))
             Text(
-                if (freeAvailable) "  오늘 무료 해제 1회 남음" else "  오늘 무료 해제를 썼어요",
-                style = scrText(12.sp, Scr.dim),
+                when {
+                    !notifBlockOn -> "  알림 차단이 꺼져 있어요 · 눌러서 켜기"
+                    freeAvailable -> "  오늘 무료 해제 1회 남음"
+                    else -> "  오늘 무료 해제를 썼어요"
+                },
+                style = scrText(12.sp, if (notifBlockOn) Scr.dim else Scr.warn),
             )
         }
         Spacer(Modifier.height(4.dp))
@@ -408,7 +421,12 @@ private fun UnlockInputScreen(
         when (val c = UnlockRules.checkReason(reason)) {
             is ReasonCheck.TooShort -> error = "사유를 ${UnlockRules.MIN_REASON_CHARS}글자 이상 적어주세요 (지금 ${c.count}글자)"
             ReasonCheck.Repetitive -> error = "같은 글자만 반복할 수는 없어요"
-            ReasonCheck.Ok -> actions.unlock(minutes, reason, method)
+            ReasonCheck.Ok ->
+                if (method == UnlockMethod.WAIT) {
+                    onScreen(Screen.UnlockWait(minutes, reason.trim()))
+                } else {
+                    actions.unlock(minutes, reason, method)
+                }
         }
     }
 
@@ -506,6 +524,62 @@ private fun UnlockInputScreen(
     }
 }
 
+// ---------------- 1분 기다리기 ----------------
+
+/** 90 → "1시간 30분", 30 → "30분", 120 → "2시간" */
+internal fun durationText(minutes: Int): String {
+    val h = minutes / 60
+    val m = minutes % 60
+    return listOfNotNull(if (h > 0) "${h}시간" else null, if (m > 0 || h == 0) "${m}분" else null).joinToString(" ")
+}
+
+/** 카운트다운만 보여주고, 끝나면 해제. 취소하거나 화면을 떠나면 폴더폰 모드에 남는다 (4장 공통 규칙 5) */
+@Composable
+private fun UnlockWaitScreen(
+    screen: Screen.UnlockWait,
+    onScreen: (Screen) -> Unit,
+    actions: FolderActions,
+    router: KeyRouter,
+) {
+    val startedAt = remember(screen) { android.os.SystemClock.elapsedRealtime() }
+    var left by remember(screen) { mutableIntStateOf(UnlockRules.WAIT_SECONDS) }
+    val inspection = LocalInspectionMode.current
+    LaunchedEffect(screen) {
+        if (inspection) return@LaunchedEffect
+        while (left > 0) {
+            kotlinx.coroutines.delay(250)
+            val passed = ((android.os.SystemClock.elapsedRealtime() - startedAt) / 1000).toInt()
+            left = (UnlockRules.WAIT_SECONDS - passed).coerceAtLeast(0)
+        }
+        actions.unlock(screen.minutes, screen.reason, UnlockMethod.WAIT)
+    }
+    val cancel = { onScreen(Screen.Home) }
+    val onKey: (FolderKey) -> Unit = { k ->
+        if (k == FolderKey.SOFT_RIGHT || k == FolderKey.END) cancel()
+    }
+    BindKeys(router, onKey)
+    FolderPhone("잠시 기다려요", SoftLabels("", "", "취소"), onKey) {
+        Column(
+            Modifier.fillMaxSize().padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text("$left", style = scrText(88.sp, weight = FontWeight.Light))
+            Text("초 뒤에 스마트폰 모드가 켜져요", style = scrText(15.sp, Scr.dim))
+            Spacer(Modifier.height(20.dp))
+            Text(
+                "${durationText(screen.minutes)} · ${screen.reason}",
+                style = scrText(13.sp, Scr.faint),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(20.dp))
+            Text("취소하면 폴더폰 모드로 남아요", style = scrText(12.sp, Scr.faint))
+        }
+    }
+}
+
 // ---------------- 공통 부품 ----------------
 
 @Composable
@@ -582,6 +656,7 @@ internal object PreviewActions : FolderActions {
     override fun requestContactsPermission() = Unit
     override fun openSettings() = Unit
     override fun isFreeAvailable() = true
+    override fun isNotificationBlockOn() = true
     override fun unlock(minutes: Int, reason: String, method: UnlockMethod) = Unit
 }
 
@@ -619,6 +694,10 @@ private fun UnlockInputPreview() = PreviewScreen(Screen.UnlockInput(UnlockMethod
 @Preview(name = "5. 전화", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
 @Composable
 private fun DialerPreview() = PreviewScreen(Screen.Dialer("01012345678"))
+
+@Preview(name = "7. 1분 기다리기", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
+@Composable
+private fun WaitPreview() = PreviewScreen(Screen.UnlockWait(30, "회사 메일 확인해야 해요"))
 
 @Preview(name = "6. 연락처", device = "spec:width=384dp,height=832dp,dpi=500", showSystemUi = true)
 @Composable

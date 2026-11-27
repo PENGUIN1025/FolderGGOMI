@@ -3,7 +3,9 @@ package com.aggro1025.jeopda.ui.settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,20 +46,54 @@ import com.aggro1025.jeopda.R
 import com.aggro1025.jeopda.ui.Lcd
 import com.aggro1025.jeopda.ui.Scr
 
-/** 설정 화면 (폴더폰 화면과 같은 남색 스타일). 지금은 시안 단계 */
+/** 설정 화면 (폴더폰 화면과 같은 남색 스타일) */
 
-data class SetupStep(val title: String, val desc: String, val done: Boolean, val required: Boolean)
+enum class StepId { HOME, NOTIF_ACCESS, POST_NOTIF, EXACT_ALARM, CONTACTS, CALL }
+
+data class SetupStep(val id: StepId, val title: String, val desc: String, val done: Boolean, val required: Boolean)
 data class SlotItem(val slot: Int, val label: String, val icon: ImageBitmap? = null, val empty: Boolean = false)
+data class NotifApp(val pkg: String, val label: String)
 
 data class SettingsUi(
     val version: String,
     val modeText: String,
     val setupDone: Boolean,
+    /** 스마트폰 모드면 "오후 3:20에 끝나요" 같은 문구, 아니면 null */
+    val smartEndText: String?,
+    /** 최초 설정 뒤 접다가 기본 홈 앱이 아니게 된 경우 */
+    val homeLost: Boolean,
     val steps: List<SetupStep>,
     val slots: List<SlotItem>,
-    val allowedNotifApps: List<String>,
+    val allowedNotifApps: List<NotifApp>,
     val editable: Boolean,
+    val smartHomeLabel: String,
 )
+
+interface SettingsCallbacks {
+    fun onStep(id: StepId)
+    fun onStart()
+    fun onReturnToFolder()
+    fun onSlot(slot: Int)
+    fun onClearSlot(slot: Int)
+    fun onAddNotifApp()
+    fun onRemoveNotifApp(pkg: String)
+    fun onSmartHome()
+    fun onPrivacy()
+    fun onLicenses()
+}
+
+object NoCallbacks : SettingsCallbacks {
+    override fun onStep(id: StepId) = Unit
+    override fun onStart() = Unit
+    override fun onReturnToFolder() = Unit
+    override fun onSlot(slot: Int) = Unit
+    override fun onClearSlot(slot: Int) = Unit
+    override fun onAddNotifApp() = Unit
+    override fun onRemoveNotifApp(pkg: String) = Unit
+    override fun onSmartHome() = Unit
+    override fun onPrivacy() = Unit
+    override fun onLicenses() = Unit
+}
 
 private fun t(size: TextUnit, color: Color = Scr.text, weight: FontWeight = FontWeight.Normal) =
     TextStyle(fontSize = size, color = color, fontWeight = weight)
@@ -66,7 +102,7 @@ private val Card = Color(0x1FFFFFFF)
 private val CardLine = Color(0x26FFFFFF)
 
 @Composable
-fun SettingsDesign(ui: SettingsUi) {
+fun SettingsDesign(ui: SettingsUi, cb: SettingsCallbacks = NoCallbacks) {
     Box(
         Modifier
             .fillMaxSize()
@@ -121,6 +157,25 @@ fun SettingsDesign(ui: SettingsUi) {
                 }
             }
 
+            if (ui.homeLost) {
+                Banner(
+                    "접다가 기본 홈 앱이 아니에요",
+                    "지금은 폴더폰 화면이 뜨지 않아요. 눌러서 다시 홈 앱으로 지정하세요",
+                ) { cb.onStep(StepId.HOME) }
+            }
+
+            if (ui.smartEndText != null) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text("스마트폰 모드", style = t(15.sp, weight = FontWeight.Bold))
+                    Text(ui.smartEndText, style = t(13.sp, Scr.dim))
+                    PrimaryButton("폴더폰으로 돌아가기", enabled = true, onClick = cb::onReturnToFolder)
+                    Text("지금 돌아가면 남은 시간은 사라져요", style = t(12.sp, Scr.dim))
+                }
+            }
+
             // 설정 단계
             val doneCount = ui.steps.count { it.done }
             Section("폴더폰 준비 ${doneCount}/${ui.steps.size}")
@@ -128,13 +183,13 @@ fun SettingsDesign(ui: SettingsUi) {
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card),
             ) {
                 ui.steps.forEachIndexed { i, s ->
-                    StepRow(i + 1, s)
+                    StepRow(i + 1, s) { cb.onStep(s.id) }
                     if (i < ui.steps.lastIndex) Divider()
                 }
             }
             if (!ui.setupDone) {
                 val ready = ui.steps.filter { it.required }.all { it.done }
-                PrimaryButton(if (ready) "폴더폰 모드 시작" else "필수 설정을 먼저 마쳐 주세요", enabled = ready)
+                PrimaryButton(if (ready) "폴더폰 모드 시작" else "필수 설정을 먼저 마쳐 주세요", enabled = ready, onClick = cb::onStart)
             }
 
             // 메뉴
@@ -145,11 +200,14 @@ fun SettingsDesign(ui: SettingsUi) {
             ) {
                 ui.slots.chunked(3).forEach { row ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { SlotCell(it, ui.editable, Modifier.weight(1f)) }
+                        row.forEach { item ->
+                            SlotCell(item, ui.editable, Modifier.weight(1f), onClick = { cb.onSlot(item.slot) }, onLong = { cb.onClearSlot(item.slot) })
+                        }
                     }
                 }
                 Text(
-                    if (ui.editable) "6~9번을 눌러 앱을 바꿀 수 있어요" else "폴더폰 모드에서는 보기만 할 수 있어요. 바꾸려면 먼저 해제하세요",
+                    if (ui.editable) "6~9번을 눌러 앱을 고르고, 길게 눌러 비워요. 게임·소셜·영상 앱과 브라우저는 넣을 수 없어요"
+                    else "폴더폰 모드에서는 보기만 할 수 있어요. 바꾸려면 먼저 해제하세요",
                     style = t(12.sp, Scr.dim),
                 )
             }
@@ -160,21 +218,37 @@ fun SettingsDesign(ui: SettingsUi) {
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text("전화, 문자, 알람, 재난문자는 항상 와요", style = t(13.sp, Scr.dim))
-                ui.allowedNotifApps.forEach { Text("· $it", style = t(15.sp)) }
-                if (ui.allowedNotifApps.size < 3 && ui.editable) {
-                    Text("+ 앱 추가", style = t(15.sp, Scr.accent, FontWeight.Bold))
+                Text("전화, 문자, 알람, 재난문자는 항상 와요. 그 밖의 앱 알림은 폴더폰 모드에서 지워져요", style = t(13.sp, Scr.dim))
+                ui.allowedNotifApps.forEach { app ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("· ${app.label}", style = t(15.sp), modifier = Modifier.weight(1f))
+                        if (ui.editable) {
+                            Text(
+                                "빼기",
+                                style = t(13.sp, Scr.dim),
+                                modifier = Modifier.clickable { cb.onRemoveNotifApp(app.pkg) }.padding(6.dp),
+                            )
+                        }
+                    }
                 }
+                if (ui.allowedNotifApps.size < 3 && ui.editable) {
+                    Text(
+                        "+ 앱 추가",
+                        style = t(15.sp, Scr.accent, FontWeight.Bold),
+                        modifier = Modifier.clickable(onClick = cb::onAddNotifApp).padding(vertical = 4.dp),
+                    )
+                }
+                if (!ui.editable) Text("폴더폰 모드에서는 보기만 할 수 있어요", style = t(12.sp, Scr.dim))
             }
 
             // 기타
             Section("기타")
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)) {
-                LinkRow("스마트폰 모드에서 쓸 홈 화면", "One UI 홈")
+                LinkRow("스마트폰 모드에서 쓸 홈 화면", ui.smartHomeLabel, cb::onSmartHome)
                 Divider()
-                LinkRow("개인정보처리방침", "")
+                LinkRow("개인정보처리방침", "", cb::onPrivacy)
                 Divider()
-                LinkRow("오픈소스 라이선스", "")
+                LinkRow("오픈소스 라이선스", "", cb::onLicenses)
             }
             Spacer(Modifier.height(8.dp))
         }
@@ -189,8 +263,12 @@ private fun Section(text: String) =
 private fun Divider() = Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp).height(1.dp).background(CardLine))
 
 @Composable
-private fun StepRow(n: Int, s: SetupStep) {
-    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun StepRow(n: Int, s: SetupStep, onClick: () -> Unit) {
+    val row = Modifier.fillMaxWidth()
+    Row(
+        (if (s.done) row else row.clickable(onClick = onClick)).padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Box(
             Modifier
                 .size(26.dp)
@@ -229,12 +307,15 @@ private fun StepRow(n: Int, s: SetupStep) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SlotCell(item: SlotItem, editable: Boolean, modifier: Modifier) {
+private fun SlotCell(item: SlotItem, editable: Boolean, modifier: Modifier, onClick: () -> Unit, onLong: () -> Unit) {
+    val userSlot = item.slot >= 6
+    val base = modifier
+        .clip(RoundedCornerShape(10.dp))
+        .background(if (userSlot && editable) Color(0x1A5AB0FF) else Color.Transparent)
     Column(
-        modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (item.slot >= 6 && editable) Color(0x1A5AB0FF) else Color.Transparent)
+        (if (userSlot && editable) base.combinedClickable(onClick = onClick, onLongClick = onLong) else base)
             .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -262,9 +343,9 @@ private fun SlotCell(item: SlotItem, editable: Boolean, modifier: Modifier) {
 }
 
 @Composable
-private fun LinkRow(title: String, value: String) {
+private fun LinkRow(title: String, value: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { }.padding(14.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = t(15.sp), modifier = Modifier.weight(1f))
@@ -274,11 +355,10 @@ private fun LinkRow(title: String, value: String) {
 }
 
 @Composable
-private fun PrimaryButton(text: String, enabled: Boolean) {
+private fun PrimaryButton(text: String, enabled: Boolean, onClick: () -> Unit) {
+    val base = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
     Box(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+        (if (enabled) base.clickable(onClick = onClick) else base)
             .background(
                 if (enabled) Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))
                 else Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x33FFFFFF))),
@@ -288,24 +368,44 @@ private fun PrimaryButton(text: String, enabled: Boolean) {
     ) { Text(text, style = t(16.sp, if (enabled) Scr.text else Scr.dim, FontWeight.Bold)) }
 }
 
-// ---------------- 시안용 예시 데이터 ----------------
+@Composable
+private fun Banner(title: String, desc: String, onClick: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0x40FFC98A))
+            .border(1.dp, Scr.warn, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+    ) {
+        Text(title, style = t(15.sp, Scr.warn, FontWeight.Bold))
+        Text(desc, style = t(13.sp))
+    }
+}
+
+// ---------------- 미리보기용 예시 데이터 ----------------
 
 internal val previewSettingsFirstRun = SettingsUi(
     version = "0.2.0",
     modeText = "처음 설정 중",
     setupDone = false,
+    smartEndText = null,
+    homeLost = false,
     steps = listOf(
-        SetupStep("기본 홈 앱", "접다를 홈 앱으로 지정하면 폴더폰 화면이 켜져요", done = true, required = true),
-        SetupStep("알림 접근", "폴더폰 모드에서 필요한 알림만 남겨요", done = false, required = true),
-        SetupStep("알림 표시", "스마트폰 모드 남은 시간과 종료 5분 전에 알려요", done = true, required = false),
-        SetupStep("연락처", "폴더폰 화면에 연락처를 보여줘요", done = false, required = false),
-        SetupStep("전화 걸기", "번호를 누르면 바로 전화를 걸어요", done = false, required = false),
+        SetupStep(StepId.HOME, "기본 홈 앱", "접다를 홈 앱으로 지정하면 폴더폰 화면이 켜져요", done = true, required = true),
+        SetupStep(StepId.NOTIF_ACCESS, "알림 접근", "폴더폰 모드에서 필요한 알림만 남겨요. 알림 내용은 저장하거나 보내지 않아요", done = false, required = true),
+        SetupStep(StepId.POST_NOTIF, "알림 표시", "스마트폰 모드 남은 시간과 종료 5분 전에 알려요", done = true, required = false),
+        SetupStep(StepId.EXACT_ALARM, "알람 및 리마인더", "종료 5분 전 알림을 정확한 시각에 보내요", done = false, required = false),
+        SetupStep(StepId.CONTACTS, "연락처", "폴더폰 화면에 연락처를 보여줘요", done = false, required = false),
+        SetupStep(StepId.CALL, "전화 걸기", "번호를 누르면 바로 전화를 걸어요", done = false, required = false),
     ),
     slots = listOf(
         SlotItem(1, "전화"), SlotItem(2, "문자"), SlotItem(3, "연락처"),
         SlotItem(4, "알람"), SlotItem(5, "카메라"), SlotItem(6, "카카오톡"),
         SlotItem(7, "지도"), SlotItem(8, "비어 있음", empty = true), SlotItem(9, "비어 있음", empty = true),
     ),
-    allowedNotifApps = listOf("카카오톡"),
+    allowedNotifApps = listOf(NotifApp("com.kakao.talk", "카카오톡")),
     editable = true,
+    smartHomeLabel = "One UI 홈",
 )

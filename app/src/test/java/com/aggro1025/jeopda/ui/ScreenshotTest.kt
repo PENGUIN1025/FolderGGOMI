@@ -57,7 +57,9 @@ class ScreenshotTest {
     @Test @Config(sdk = [35], qualifiers = "w360dp-h640dp-xxhdpi")
     fun menuSmallScreen() = shoot("8_menu_small_screen", Screen.Menu(selected = 6))
 
-    // 시안: 새 설정 화면
+    @Test fun unlockWait() = shoot("10_unlock_wait", Screen.UnlockWait(30, "회사 메일 확인해야 해요"))
+
+    // 새 설정 화면
     @Test fun settingsDesign() = shootContent("9_settings_design") {
         com.aggro1025.jeopda.ui.settings.SettingsDesign(com.aggro1025.jeopda.ui.settings.previewSettingsFirstRun)
     }

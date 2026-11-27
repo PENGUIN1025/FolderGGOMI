@@ -38,7 +38,15 @@ object UnlockRules {
 
     fun isValidDuration(minutes: Int): Boolean = minutes in MIN_MINUTES..MAX_MINUTES
 
-    /** 하루 1회 무료: 마지막 사용일이 오늘(기기 현지 날짜)이 아니면 사용 가능 */
-    fun isFreeAvailable(lastFreeDate: String?, today: LocalDate): Boolean =
-        lastFreeDate != today.toString()
+    /** v0.2a 임시 해제(광고 자리): 기다리는 시간. 광고를 불러오지 못했을 때도 같은 시간 */
+    const val WAIT_SECONDS = 60
+
+    /**
+     * 하루 1회 무료: 마지막 사용일보다 오늘이 뒤일 때만 사용 가능.
+     * (시계를 과거로 돌려도 다시 생기지 않게 "다른 날"이 아니라 "다음 날 이후"로 판단)
+     */
+    fun isFreeAvailable(lastFreeDate: String?, today: LocalDate): Boolean {
+        val last = lastFreeDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: return true
+        return today.isAfter(last)
+    }
 }

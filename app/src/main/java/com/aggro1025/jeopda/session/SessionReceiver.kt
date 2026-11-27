@@ -10,7 +10,7 @@ class SessionReceiver : BroadcastReceiver() {
         when (intent.action) {
             SmartSession.ACTION_WARN -> SmartSession.showWarning(context)
             SmartSession.ACTION_EXPIRE -> {
-                val wasSmart = SmartSession.endAt(context) != 0L
+                val wasSmart = com.aggro1025.jeopda.data.AppPrefs(context).smartEndAt != 0L
                 if (SmartSession.isSmart(context)) {
                     // 부정확한 알람이 일찍 온 경우: 다시 맞춘다
                     SmartSession.sync(context)
@@ -35,6 +35,7 @@ class BootReceiver : BroadcastReceiver() {
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
+            "android.intent.action.TIME_SET",
         )
     }
 }
