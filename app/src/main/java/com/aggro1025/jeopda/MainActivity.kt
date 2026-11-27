@@ -35,6 +35,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.aggro1025.jeopda.ads.UnlockAds
+import com.aggro1025.jeopda.apps.AppGuard
 import com.aggro1025.jeopda.apps.AppPolicy
 import com.aggro1025.jeopda.apps.Apps
 import com.aggro1025.jeopda.apps.BuiltIn
@@ -77,6 +78,7 @@ class MainActivity : ComponentActivity() {
     private var contacts by mutableStateOf<List<Contact>>(emptyList())
     private var contactsPermitted by mutableStateOf(false)
     private var notifBlockOn by mutableStateOf(true)
+    private var appGuardOn by mutableStateOf(true)
     private val relayTimes = ArrayDeque<Long>()
 
     /** 전화 걸기 권한을 묻는 동안 걸려던 번호 */
@@ -100,6 +102,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleReturnExtra(intent)
+        handleBlockedExtra(intent)
 
         // 뒤로: 하위 화면이면 홈으로, 홈이면 아무것도 안 함 (런처는 닫히지 않는다)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -107,7 +110,7 @@ class MainActivity : ComponentActivity() {
                 if (mode == Mode.FOLDER && screen != Screen.Home) {
                     screen = when (val sc = screen) {
                         is Screen.UnlockInput -> Screen.UnlockMethod()
-                        is Screen.UnlockWait, is Screen.UnlockAd -> Screen.Home
+                        is Screen.UnlockWait, is Screen.UnlockAd, is Screen.Blocked -> Screen.Home
                         is Screen.Contacts -> if (sc.keys.isNotEmpty()) Screen.Contacts(sc.keys.dropLast(1)) else Screen.Home
                         is Screen.Dialer -> if (sc.number.isNotEmpty()) Screen.Dialer(sc.number.dropLast(1)) else Screen.Home
                         else -> Screen.Home
@@ -148,6 +151,15 @@ class MainActivity : ComponentActivity() {
         handleReturnExtra(intent)
         // 홈 버튼을 누르면 폴더폰 대기 화면으로
         screen = Screen.Home
+        handleBlockedExtra(intent)
+    }
+
+    /** 다른 앱 막기로 돌아온 경우: 어떤 앱이 막혔는지 보여준다 */
+    private fun handleBlockedExtra(intent: Intent?) {
+        val pkg = intent?.getStringExtra(EXTRA_BLOCKED_PACKAGE) ?: return
+        intent.removeExtra(EXTRA_BLOCKED_PACKAGE)
+        if (SmartSession.isSmart(this)) return
+        screen = Screen.Blocked(Apps.entry(this, pkg)?.label ?: pkg)
     }
 
     override fun onResume() {
@@ -166,6 +178,7 @@ class MainActivity : ComponentActivity() {
             menu = buildMenu()
             reloadContacts()
             notifBlockOn = NotificationBlocker.isEnabled(this)
+            appGuardOn = AppGuard.isReady(this)
             NotificationBlocker.sweepNow()
         }
     }
@@ -363,6 +376,8 @@ class MainActivity : ComponentActivity() {
 
         override fun isNotificationBlockOn(): Boolean = notifBlockOn
 
+        override fun isAppGuardOn(): Boolean = appGuardOn
+
         override fun playUnlockAds(onProgress: (Int) -> Unit, onResult: (UnlockAds.Result) -> Unit) =
             UnlockAds.play(this@MainActivity, onProgress, onResult)
 
@@ -375,6 +390,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_RETURN_TO_FOLDER = "return_to_folder"
+        const val EXTRA_BLOCKED_PACKAGE = "blocked_package"
         private const val SAMSUNG_HOME = "com.sec.android.app.launcher"
 
         /** 한국 긴급·신고 번호 (기기 판별이 실패해도 막히지 않게) */

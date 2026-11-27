@@ -68,6 +68,8 @@ sealed interface Screen {
     data class Dialer(val number: String = "") : Screen
     /** 1분 기다린 뒤 해제 (광고를 불러오지 못했을 때) */
     data class UnlockWait(val minutes: Int, val reason: String, val adFailed: Boolean = false) : Screen
+    /** 폴더폰 모드에서 쓸 수 없는 앱을 열려고 했을 때 */
+    data class Blocked(val label: String) : Screen
     /** 보상형 광고 2개 보기 */
     data class UnlockAd(val minutes: Int, val reason: String, val attempt: Int = 0) : Screen
     /** keys: 초성 찾기로 누른 숫자들, selected: 목록에서 고른 줄 */

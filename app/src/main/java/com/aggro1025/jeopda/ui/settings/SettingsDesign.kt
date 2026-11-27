@@ -48,7 +48,7 @@ import com.aggro1025.jeopda.ui.Scr
 
 /** 설정 화면 (폴더폰 화면과 같은 남색 스타일) */
 
-enum class StepId { HOME, NOTIF_ACCESS, POST_NOTIF, EXACT_ALARM, CONTACTS, CALL }
+enum class StepId { HOME, NOTIF_ACCESS, USAGE_ACCESS, OVERLAY, POST_NOTIF, EXACT_ALARM, CONTACTS, CALL }
 
 data class SetupStep(val id: StepId, val title: String, val desc: String, val done: Boolean, val required: Boolean)
 data class SlotItem(val slot: Int, val label: String, val icon: ImageBitmap? = null, val empty: Boolean = false)
@@ -157,7 +157,7 @@ fun SettingsDesign(ui: SettingsUi, cb: SettingsCallbacks = NoCallbacks) {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         "접다가 요청하는 권한은 이 폰을 폴더폰처럼 쓰기 위한 것뿐이에요. " +
-                            "연락처, 앱 목록, 알림 내용, 해제 사유는 폰 안에서만 쓰고 밖으로 보내지 않아요. " +
+                            "연락처, 앱 목록, 알림, 사용 기록, 해제 사유는 폰 안에서만 쓰고 밖으로 보내지 않아요. " +
                             "단, '광고 보기'로 해제할 때는 구글 광고가 광고를 보여 주는 데 필요한 정보(광고 ID 등)를 사용해요.",
                         style = t(13.sp, Scr.text.copy(alpha = 0.9f)),
                     )
@@ -402,7 +402,7 @@ private fun Banner(title: String, desc: String, onClick: () -> Unit) {
 // ---------------- 미리보기용 예시 데이터 ----------------
 
 internal val previewSettingsFirstRun = SettingsUi(
-    version = "0.2.0",
+    version = "0.4.0",
     modeText = "처음 설정 중",
     setupDone = false,
     smartEndText = null,
@@ -410,6 +410,8 @@ internal val previewSettingsFirstRun = SettingsUi(
     steps = listOf(
         SetupStep(StepId.HOME, "기본 홈 앱", "접다를 홈 앱으로 지정하면 폴더폰 화면이 켜져요", done = true, required = true),
         SetupStep(StepId.NOTIF_ACCESS, "알림 접근", "폴더폰 모드에서 필요한 알림만 남겨요. 알림 내용은 저장하거나 보내지 않아요", done = false, required = true),
+        SetupStep(StepId.USAGE_ACCESS, "사용 기록 접근", "폴더폰 모드에서 최근 앱 화면 등으로 다른 앱을 열면 막아요. 지금 맨 앞 앱만 확인하고 기록은 저장하지 않아요", done = false, required = true),
+        SetupStep(StepId.OVERLAY, "다른 앱 위에 표시", "막힌 앱 대신 폴더폰 화면을 띄우는 데 필요해요", done = false, required = true),
         SetupStep(StepId.POST_NOTIF, "알림 표시", "스마트폰 모드 남은 시간과 종료 30분 전·10분 전에 알려요", done = true, required = false),
         SetupStep(StepId.EXACT_ALARM, "알람 및 리마인더", "종료 전 알림을 정확한 시각에 보내요", done = false, required = false),
         SetupStep(StepId.CONTACTS, "연락처", "폴더폰 화면에 연락처를 보여줘요", done = false, required = false),

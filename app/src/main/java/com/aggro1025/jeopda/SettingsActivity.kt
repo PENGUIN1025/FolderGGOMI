@@ -56,6 +56,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.aggro1025.jeopda.apps.AppEntry
+import com.aggro1025.jeopda.apps.AppGuard
 import com.aggro1025.jeopda.apps.AppPolicy
 import com.aggro1025.jeopda.apps.Apps
 import com.aggro1025.jeopda.apps.BuiltIn
@@ -138,6 +139,13 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
             when (id) {
                 StepId.HOME -> requestHomeRole(context, roleLauncher::launch)
                 StepId.NOTIF_ACCESS -> openNotificationAccess(context)
+                StepId.USAGE_ACCESS -> context.startSafely(
+                    Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:${context.packageName}")),
+                    fallback = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS),
+                )
+                StepId.OVERLAY -> context.startSafely(
+                    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")),
+                )
                 StepId.POST_NOTIF -> if (Build.VERSION.SDK_INT >= 33) permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 StepId.EXACT_ALARM -> if (Build.VERSION.SDK_INT >= 31) {
                     context.startSafely(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}")))
@@ -239,6 +247,20 @@ private fun buildUi(context: Context, prefs: AppPrefs): SettingsUi {
                 NotificationBlocker.isEnabled(context), required = true,
             ),
         )
+        add(
+            SetupStep(
+                StepId.USAGE_ACCESS, "사용 기록 접근",
+                "폴더폰 모드에서 최근 앱 화면 등으로 다른 앱을 열면 막아요. 지금 맨 앞 앱만 확인하고 기록은 저장하지 않아요",
+                AppGuard.hasUsageAccess(context), required = true,
+            ),
+        )
+        add(
+            SetupStep(
+                StepId.OVERLAY, "다른 앱 위에 표시",
+                "막힌 앱 대신 폴더폰 화면을 띄우는 데 필요해요",
+                AppGuard.canDrawOverlays(context), required = true,
+            ),
+        )
         if (Build.VERSION.SDK_INT >= 33) {
             add(
                 SetupStep(
@@ -326,11 +348,15 @@ private fun openNotificationAccess(context: Context) {
     context.startSafely(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
 }
 
-private fun Context.startSafely(intent: Intent) {
+private fun Context.startSafely(intent: Intent, fallback: Intent = Intent(Settings.ACTION_SETTINGS)) {
     try {
         startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (e: ActivityNotFoundException) {
-        startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        try {
+            startActivity(fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e2: ActivityNotFoundException) {
+            startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
     }
 }
 

@@ -88,6 +88,8 @@ interface FolderActions {
     fun isFreeAvailable(): Boolean
     /** 알림 차단(알림 접근 권한)이 켜져 있는지 */
     fun isNotificationBlockOn(): Boolean
+    /** 다른 앱 막기(사용 기록·다른 앱 위에 표시 권한)가 켜져 있는지 */
+    fun isAppGuardOn(): Boolean = true
     fun unlock(minutes: Int, reason: String, method: UnlockMethod)
     /** 보상형 광고를 차례로 보여 준다. 결과는 한 번만 온다 */
     fun playUnlockAds(onProgress: (Int) -> Unit, onResult: (com.aggro1025.jeopda.ads.UnlockAds.Result) -> Unit)
@@ -120,7 +122,11 @@ fun FolderApp(
             }
             BindKeys(router, onKey)
             FolderPhone(null, SoftLabels("해제", "메뉴", "설정"), onKey) {
-                HomeDisplay(actions.isFreeAvailable(), actions.isNotificationBlockOn(), onFixNotif = { actions.openSettings() })
+                HomeDisplay(
+                    actions.isFreeAvailable(),
+                    actions.isNotificationBlockOn() && actions.isAppGuardOn(),
+                    onFixNotif = { actions.openSettings() },
+                )
             }
         }
 
@@ -191,6 +197,29 @@ fun FolderApp(
         is Screen.Contacts -> ContactsScreen(screen, contacts, onScreen, actions, router)
         is Screen.UnlockWait -> UnlockWaitScreen(screen, onScreen, actions, router)
         is Screen.UnlockAd -> UnlockAdScreen(screen, onScreen, actions, router)
+        is Screen.Blocked -> {
+            val onKey: (FolderKey) -> Unit = { k ->
+                when (k) {
+                    FolderKey.SOFT_LEFT -> onScreen(Screen.UnlockMethod())
+                    FolderKey.OK, FolderKey.SOFT_RIGHT, FolderKey.END -> onScreen(Screen.Home)
+                    else -> Unit
+                }
+            }
+            BindKeys(router, onKey)
+            FolderPhone("쓸 수 없는 앱", SoftLabels("해제", "확인", "닫기"), onKey) {
+                Column(
+                    Modifier.fillMaxSize().padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(screen.label, style = scrText(22.sp, weight = FontWeight.Bold), textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    Text("폴더폰 모드에서는 쓸 수 없는 앱이에요", style = scrText(15.sp, Scr.dim))
+                    Spacer(Modifier.height(18.dp))
+                    Text("쓰려면 '해제'를 눌러 스마트폰 모드로 바꿔요", style = scrText(13.sp, Scr.faint))
+                }
+            }
+        }
     }
 }
 
@@ -247,7 +276,7 @@ private fun HomeDisplay(freeAvailable: Boolean, notifBlockOn: Boolean, onFixNoti
             Box(Modifier.size(7.dp).clip(CircleShape).background(dot))
             Text(
                 when {
-                    !notifBlockOn -> "  알림 차단이 꺼져 있어요 · 눌러서 켜기"
+                    !notifBlockOn -> "  알림·앱 차단이 꺼져 있어요 · 눌러서 켜기"
                     freeAvailable -> "  오늘 무료 해제 1회 남음"
                     else -> "  오늘 무료 해제를 썼어요"
                 },

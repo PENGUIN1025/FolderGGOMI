@@ -17,6 +17,13 @@
     <!-- 전화 기능이 없는 기기(태블릿)에서도 설치 가능하게 -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
+    <!-- 폴더폰 모드에서 허용하지 않은 앱이 화면에 뜨는지 확인 (지금 맨 앞 앱 이름만, 저장·전송 안 함) -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <!-- 허용하지 않은 앱이 뜨면 폴더폰 화면으로 돌려보내기 위해 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <!-- 재부팅 후 남은 시간·알림 복구 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 

@@ -58,6 +58,7 @@ class ScreenshotTest {
     fun menuSmallScreen() = shoot("8_menu_small_screen", Screen.Menu(selected = 6))
 
     @Test fun unlockWait() = shoot("10_unlock_wait", Screen.UnlockWait(30, "회사 메일 확인해야 해요", adFailed = true))
+    @Test fun blocked() = shoot("13_blocked", Screen.Blocked("인스타그램"))
     @Test fun unlockAd() = shoot("12_unlock_ad", Screen.UnlockAd(30, "회사 메일 확인해야 해요"))
 
     @Test fun history() = shootContent("11_history") {

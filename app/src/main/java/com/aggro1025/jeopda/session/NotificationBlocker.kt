@@ -23,15 +23,54 @@ class NotificationBlocker : NotificationListenerService() {
 
     private var base: Set<String> = emptySet()
 
+    // ---- 다른 앱 막기 (최근 앱 화면 등 홈이 아닌 경로) ----
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var allowedCache: Set<String> = emptySet()
+    private var homeApps: Set<String> = emptySet()
+    private var allowedAt = 0L
+    private var lastRedirect = 0L
+    private val guardTick = object : Runnable {
+        override fun run() {
+            runCatching { guardOnce() }
+            handler.postDelayed(this, GUARD_INTERVAL_MS)
+        }
+    }
+
     override fun onListenerConnected() {
         instance = this
         base = AppPolicy.baseAllowedPackages(this)
         sweep()
         checkHomeRole()
+        handler.removeCallbacks(guardTick)
+        handler.post(guardTick)
     }
 
     override fun onListenerDisconnected() {
+        handler.removeCallbacks(guardTick)
         if (instance === this) instance = null
+    }
+
+    /** 폴더폰 모드에서 화면 맨 앞에 허용하지 않은 앱이 있으면 폴더폰 화면으로 돌려보낸다 */
+    private fun guardOnce() {
+        if (!isFolderMode(this)) return
+        val power = getSystemService(android.os.PowerManager::class.java)
+        if (power?.isInteractive != true) return // 화면이 꺼져 있으면 쉰다
+        if (!com.aggro1025.jeopda.apps.AppGuard.isReady(this)) return
+        val pkg = com.aggro1025.jeopda.apps.AppGuard.foregroundPackage(this) ?: return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - allowedAt > 30_000L) { // 허용 목록은 30초마다 새로
+            allowedCache = com.aggro1025.jeopda.apps.AppGuard.allowedPackages(this)
+            homeApps = com.aggro1025.jeopda.apps.Apps.otherHomeApps(this).map { it.first.packageName }.toSet()
+            allowedAt = now
+        }
+        if (com.aggro1025.jeopda.apps.AppGuard.isAllowed(pkg, allowedCache)) return
+        if (now - lastRedirect < 2_000L) return
+        lastRedirect = now
+        val intent = android.content.Intent(this, com.aggro1025.jeopda.MainActivity::class.java)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        // 원래 홈 앱(최근 앱 화면 포함)은 홈 제스처 중 잠깐 잡힐 수 있어서 안내 없이 조용히 돌려보낸다
+        if (pkg !in homeApps) intent.putExtra(com.aggro1025.jeopda.MainActivity.EXTRA_BLOCKED_PACKAGE, pkg)
+        startActivity(intent)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -73,6 +112,7 @@ class NotificationBlocker : NotificationListenerService() {
         private var instance: NotificationBlocker? = null
         private const val HOME_WARN_INTERVAL = 60 * 60 * 1000L
         private const val NOTIF_HOME_LOST = 3
+        private const val GUARD_INTERVAL_MS = 1_000L
 
         fun sweepNow() = instance?.sweep()
 

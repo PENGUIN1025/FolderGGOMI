@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 4
-        versionName = "0.3.0"
+        versionName = "0.4.0"
 
         // AdMob: 실제 계정이 생기기 전까지 구글 공식 테스트 ID ("Test Ad" 표시, 수익 없음)
         manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
