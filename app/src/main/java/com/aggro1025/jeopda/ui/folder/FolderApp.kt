@@ -456,16 +456,8 @@ private fun UnlockInputScreen(
             Box(Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
                 DialPicker(minutes, onChange = { setMinutes(it) })
             }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-            ) {
-                listOf(15 to "15분", 30 to "30분", 60 to "1시간", 120 to "2시간").forEach { (m, t) ->
-                    Chip(t, selected = minutes == m) { setMinutes(m) }
-                }
-            }
             Text(
-                "바늘을 돌리거나 ▲▼ 1시간 · ◀▶ 5분",
+                "바늘을 돌려서 정해요 · 한 바퀴 = 12시간",
                 style = scrText(11.sp, Scr.faint),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
