@@ -590,23 +590,30 @@ private fun UnlockWaitScreen(
     }
     BindKeys(router, onKey)
     FolderPhone(if (screen.adFailed) "광고를 불러오지 못했어요" else "잠시 기다려요", SoftLabels("", "", "취소"), onKey) {
+        val passed = UnlockRules.WAIT_SECONDS - left
         Column(
-            Modifier.fillMaxSize().padding(20.dp),
+            Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text("$left", style = scrText(88.sp, weight = FontWeight.Light))
-            Text("초 뒤에 스마트폰 모드가 켜져요", style = scrText(15.sp, Scr.dim))
-            Spacer(Modifier.height(20.dp))
+            BreathingCircle()
+            Spacer(Modifier.height(18.dp))
+            // 문구는 10초마다 바뀐다
             Text(
-                "${durationText(screen.minutes)} · ${screen.reason}",
-                style = scrText(13.sp, Scr.faint),
+                MINDFUL_LINES[(passed / 10 + screen.reason.length) % MINDFUL_LINES.size],
+                style = scrText(18.sp, weight = FontWeight.Bold),
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text("${left}초 뒤에 스마트폰 모드가 켜져요", style = scrText(13.sp, Scr.dim))
+            Spacer(Modifier.height(14.dp))
+            Text(
+                "적어 둔 이유: ${screen.reason} · ${durationText(screen.minutes)}",
+                style = scrText(12.sp, Scr.faint),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(20.dp))
-            Text("취소하면 폴더폰 모드로 남아요", style = scrText(12.sp, Scr.faint))
         }
     }
 }
@@ -658,6 +665,12 @@ private fun UnlockAdScreen(
             } else {
                 Text("$index / ${UnlockAds.COUNT}", style = scrText(56.sp, weight = FontWeight.Light))
                 Text("광고를 불러오는 중이에요", style = scrText(15.sp, Scr.dim))
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    MINDFUL_LINES[(index + screen.attempt + screen.reason.length) % MINDFUL_LINES.size],
+                    style = scrText(17.sp, weight = FontWeight.Bold),
+                    textAlign = TextAlign.Center,
+                )
                 Spacer(Modifier.height(16.dp))
                 Text("광고 ${UnlockAds.COUNT}개를 끝까지 보면 스마트폰 모드가 켜져요", style = scrText(13.sp, Scr.faint))
             }
