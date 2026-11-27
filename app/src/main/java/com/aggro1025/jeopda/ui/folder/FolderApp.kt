@@ -451,7 +451,7 @@ private fun UnlockInputScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 14.dp, vertical = 8.dp),
         ) {
-            Label("얼마나 쓸까요? (최대 ${UnlockRules.MAX_MINUTES / 60}시간)")
+            Label("스마트폰 모드를 얼마 동안 쓸까요? (최대 ${UnlockRules.MAX_MINUTES / 60}시간)")
             Row(
                 Modifier
                     .padding(vertical = 6.dp)
@@ -475,12 +475,17 @@ private fun UnlockInputScreen(
             Spacer(Modifier.height(12.dp))
             val count = UnlockRules.reasonCharCount(reason)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Label("왜 필요한가요?", Modifier.weight(1f))
+                Label("왜 스마트폰이 필요한가요?", Modifier.weight(1f))
                 Text(
                     "$count/${UnlockRules.MIN_REASON_CHARS}",
                     style = scrText(13.sp, if (count >= UnlockRules.MIN_REASON_CHARS) Scr.accent else Scr.dim, FontWeight.Bold),
                 )
             }
+            Text(
+                "솔직하게 적어 주세요. 사유는 이 폰 안에만 저장되고 밖으로 나가지 않아요",
+                style = scrText(12.sp, Scr.faint),
+                modifier = Modifier.padding(top = 2.dp),
+            )
             BasicTextField(
                 value = reason,
                 onValueChange = { reason = it.take(200); error = null },
@@ -496,7 +501,9 @@ private fun UnlockInputScreen(
                 minLines = 2,
                 decorationBox = { inner ->
                     Box {
-                        if (reason.isEmpty()) Text("10글자 이상 적어주세요", style = scrText(15.sp, Scr.faint).copy(shadow = null))
+                        if (reason.isEmpty()) {
+                            Text("${UnlockRules.MIN_REASON_CHARS}글자 이상 적어 주세요", style = scrText(15.sp, Scr.faint).copy(shadow = null))
+                        }
                         inner()
                     }
                 },

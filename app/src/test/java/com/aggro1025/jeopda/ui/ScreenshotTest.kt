@@ -59,6 +59,11 @@ class ScreenshotTest {
 
     @Test fun unlockWait() = shoot("10_unlock_wait", Screen.UnlockWait(30, "회사 메일 확인해야 해요"))
 
+    @Test fun history() = shootContent("11_history") {
+        val now = System.currentTimeMillis()
+        com.aggro1025.jeopda.ui.settings.HistoryScreen(com.aggro1025.jeopda.ui.settings.previewHistory(now), now, onBack = {})
+    }
+
     // 새 설정 화면
     @Test fun settingsDesign() = shootContent("9_settings_design") {
         com.aggro1025.jeopda.ui.settings.SettingsDesign(com.aggro1025.jeopda.ui.settings.previewSettingsFirstRun)

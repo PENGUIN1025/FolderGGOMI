@@ -13,8 +13,8 @@ object UnlockRules {
     const val MIN_MINUTES = 5
     const val MINUTE_STEP = 5
 
-    /** 사유 최소 글자 수 (공백 제외) */
-    const val MIN_REASON_CHARS = 10
+    /** 사유 최소 글자 수 (공백 제외). 문서의 10글자에서 사용자 결정으로 6글자로 변경 */
+    const val MIN_REASON_CHARS = 6
 
     /** 종료 전 알림 시점 */
     const val WARNING_BEFORE_MILLIS = 5 * 60 * 1000L

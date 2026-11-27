@@ -78,9 +78,13 @@ object SmartSession {
         showOngoing(context)
     }
 
-    /** 조기 복귀 또는 만료. 남은 시간은 소멸한다 */
-    fun end(context: Context) {
+    /** 조기 복귀(early=true) 또는 만료. 남은 시간은 소멸한다 */
+    fun end(context: Context, early: Boolean = true) {
         val prefs = AppPrefs(context)
+        if (prefs.smartEndAt != 0L) {
+            val now = Clock.now(context)
+            prefs.closeLastReason { e -> if (early) now else e.plannedEnd }
+        }
         prefs.smartEndAt = 0L
         prefs.smartEndElapsed = 0L
         cancelAlarms(context)
@@ -95,7 +99,7 @@ object SmartSession {
         if (prefs.smartEndAt == 0L) return
         val remaining = remainingMs(context)
         if (remaining <= 0L) {
-            end(context)
+            end(context, early = false)
             return
         }
         // 재부팅 뒤에는 경과 시간 기준을 새로 잡는다

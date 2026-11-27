@@ -80,6 +80,7 @@ interface SettingsCallbacks {
     fun onSmartHome()
     fun onPrivacy()
     fun onLicenses()
+    fun onHistory()
 }
 
 object NoCallbacks : SettingsCallbacks {
@@ -93,6 +94,7 @@ object NoCallbacks : SettingsCallbacks {
     override fun onSmartHome() = Unit
     override fun onPrivacy() = Unit
     override fun onLicenses() = Unit
+    override fun onHistory() = Unit
 }
 
 private fun t(size: TextUnit, color: Color = Scr.text, weight: FontWeight = FontWeight.Normal) =
@@ -244,6 +246,8 @@ fun SettingsDesign(ui: SettingsUi, cb: SettingsCallbacks = NoCallbacks) {
             // 기타
             Section("기타")
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)) {
+                LinkRow("해제 기록", "사유·사용 시간", cb::onHistory)
+                Divider()
                 LinkRow("스마트폰 모드에서 쓸 홈 화면", ui.smartHomeLabel, cb::onSmartHome)
                 Divider()
                 LinkRow("개인정보처리방침", "", cb::onPrivacy)

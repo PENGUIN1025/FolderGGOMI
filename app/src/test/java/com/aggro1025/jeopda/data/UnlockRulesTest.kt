@@ -9,24 +9,25 @@ import java.time.LocalDate
 
 class UnlockRulesTest {
     @Test
-    fun reasonUnderTenCharsIsRejected() {
-        assertEquals(ReasonCheck.TooShort(7), UnlockRules.checkReason("은행 송금 해야함"))
+    fun reasonUnderSixCharsIsRejected() {
+        assertEquals(ReasonCheck.TooShort(5), UnlockRules.checkReason("은행 송금함"))
     }
 
     @Test
     fun spacesDoNotCount() {
         assertEquals(ReasonCheck.TooShort(5), UnlockRules.checkReason("가 나 다 라 마          "))
+        assertEquals(ReasonCheck.Ok, UnlockRules.checkReason("가 나 다 라 마 바"))
     }
 
     @Test
-    fun tenCharsIsAccepted() {
-        assertEquals(ReasonCheck.Ok, UnlockRules.checkReason("회사 메일 확인해야 해요"))
+    fun sixCharsIsAccepted() {
+        assertEquals(ReasonCheck.Ok, UnlockRules.checkReason("은행 송금 해야함"))
     }
 
     @Test
     fun repeatedSingleCharIsRejected() {
-        assertEquals(ReasonCheck.Repetitive, UnlockRules.checkReason("ㅋㅋㅋㅋㅋ ㅋㅋㅋㅋㅋㅋ"))
-        assertEquals(ReasonCheck.Repetitive, UnlockRules.checkReason("aaaaaaaaaaaa"))
+        assertEquals(ReasonCheck.Repetitive, UnlockRules.checkReason("ㅋㅋㅋ ㅋㅋㅋㅋ"))
+        assertEquals(ReasonCheck.Repetitive, UnlockRules.checkReason("aaaaaaa"))
     }
 
     @Test

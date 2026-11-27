@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -62,6 +63,7 @@ import com.aggro1025.jeopda.data.AppPrefs
 import com.aggro1025.jeopda.session.NotificationBlocker
 import com.aggro1025.jeopda.session.SmartSession
 import com.aggro1025.jeopda.ui.JeopdaTheme
+import com.aggro1025.jeopda.ui.settings.HistoryScreen
 import com.aggro1025.jeopda.ui.settings.NotifApp
 import com.aggro1025.jeopda.ui.settings.SettingsCallbacks
 import com.aggro1025.jeopda.ui.settings.SettingsDesign
@@ -127,6 +129,7 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
     var picker by remember { mutableStateOf<Pair<PickerMode, Int>?>(null) }
     var showLicenses by remember { mutableStateOf(false) }
     var showHomeChoice by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
 
     val ui = remember(tick) { buildUi(context, prefs) }
 
@@ -172,8 +175,17 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
         override fun onLicenses() {
             showLicenses = true
         }
+
+        override fun onHistory() {
+            showHistory = true
+        }
     }
 
+    if (showHistory) {
+        BackHandler { showHistory = false }
+        HistoryScreen(prefs.reasons(), System.currentTimeMillis(), onBack = { showHistory = false })
+        return
+    }
     SettingsDesign(ui, cb)
 
     picker?.let { (mode, slot) ->

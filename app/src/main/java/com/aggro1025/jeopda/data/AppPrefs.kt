@@ -98,6 +98,7 @@ class AppPrefs(context: Context) {
             put("minutes", entry.minutes)
             put("method", entry.method)
             put("reason", entry.reason)
+            entry.endedAt?.let { put("endedAt", it) }
         })
         sp.edit().putString(KEY_REASONS, arr.toString()).apply()
     }
@@ -106,7 +107,10 @@ class AppPrefs(context: Context) {
         val arr = JSONArray(sp.getString(KEY_REASONS, "[]"))
         return (0 until arr.length()).map {
             val o = arr.getJSONObject(it)
-            ReasonEntry(o.getLong("at"), o.getInt("minutes"), o.getString("method"), o.getString("reason"))
+            ReasonEntry(
+                o.getLong("at"), o.getInt("minutes"), o.getString("method"), o.getString("reason"),
+                if (o.has("endedAt")) o.getLong("endedAt") else null,
+            )
         }
     }
 
@@ -116,7 +120,21 @@ class AppPrefs(context: Context) {
     fun unregisterListener(l: SharedPreferences.OnSharedPreferenceChangeListener) =
         sp.unregisterOnSharedPreferenceChangeListener(l)
 
-    data class ReasonEntry(val at: Long, val minutes: Int, val method: String, val reason: String)
+    /** 마지막 해제 기록에 실제로 끝난 시각을 적는다 (일찍 돌아오면 그 시각, 만료면 예정 시각) */
+    fun closeLastReason(endedAt: (ReasonEntry) -> Long) {
+        val arr = JSONArray(sp.getString(KEY_REASONS, "[]"))
+        if (arr.length() == 0) return
+        val o = arr.getJSONObject(arr.length() - 1)
+        if (o.has("endedAt")) return
+        val e = ReasonEntry(o.getLong("at"), o.getInt("minutes"), o.getString("method"), o.getString("reason"))
+        o.put("endedAt", endedAt(e).coerceIn(e.at, e.plannedEnd))
+        sp.edit().putString(KEY_REASONS, arr.toString()).apply()
+    }
+
+    /** endedAt: 실제로 폴더폰으로 돌아온 시각 (없으면 아직 사용 중) */
+    data class ReasonEntry(val at: Long, val minutes: Int, val method: String, val reason: String, val endedAt: Long? = null) {
+        val plannedEnd: Long get() = at + minutes * 60_000L
+    }
 
     companion object {
         val USER_SLOTS = 6..9

@@ -15,7 +15,7 @@ class SessionReceiver : BroadcastReceiver() {
                     // 부정확한 알람이 일찍 온 경우: 다시 맞춘다
                     SmartSession.sync(context)
                 } else if (wasSmart) {
-                    SmartSession.end(context)
+                    SmartSession.end(context, early = false)
                     SmartSession.showExpired(context)
                 }
             }
