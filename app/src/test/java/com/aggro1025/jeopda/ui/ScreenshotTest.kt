@@ -57,7 +57,8 @@ class ScreenshotTest {
     @Test @Config(sdk = [35], qualifiers = "w360dp-h640dp-xxhdpi")
     fun menuSmallScreen() = shoot("8_menu_small_screen", Screen.Menu(selected = 6))
 
-    @Test fun unlockWait() = shoot("10_unlock_wait", Screen.UnlockWait(30, "회사 메일 확인해야 해요"))
+    @Test fun unlockWait() = shoot("10_unlock_wait", Screen.UnlockWait(30, "회사 메일 확인해야 해요", adFailed = true))
+    @Test fun unlockAd() = shoot("12_unlock_ad", Screen.UnlockAd(30, "회사 메일 확인해야 해요"))
 
     @Test fun history() = shootContent("11_history") {
         val now = System.currentTimeMillis()

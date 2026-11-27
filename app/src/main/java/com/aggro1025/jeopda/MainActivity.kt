@@ -34,6 +34,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import com.aggro1025.jeopda.ads.UnlockAds
 import com.aggro1025.jeopda.apps.AppPolicy
 import com.aggro1025.jeopda.apps.Apps
 import com.aggro1025.jeopda.apps.BuiltIn
@@ -106,7 +107,7 @@ class MainActivity : ComponentActivity() {
                 if (mode == Mode.FOLDER && screen != Screen.Home) {
                     screen = when (val sc = screen) {
                         is Screen.UnlockInput -> Screen.UnlockMethod()
-                        is Screen.UnlockWait -> Screen.Home
+                        is Screen.UnlockWait, is Screen.UnlockAd -> Screen.Home
                         is Screen.Contacts -> if (sc.keys.isNotEmpty()) Screen.Contacts(sc.keys.dropLast(1)) else Screen.Home
                         is Screen.Dialer -> if (sc.number.isNotEmpty()) Screen.Dialer(sc.number.dropLast(1)) else Screen.Home
                         else -> Screen.Home
@@ -361,6 +362,9 @@ class MainActivity : ComponentActivity() {
         override fun isFreeAvailable(): Boolean = SmartSession.isFreeAvailableToday(this@MainActivity)
 
         override fun isNotificationBlockOn(): Boolean = notifBlockOn
+
+        override fun playUnlockAds(onProgress: (Int) -> Unit, onResult: (UnlockAds.Result) -> Unit) =
+            UnlockAds.play(this@MainActivity, onProgress, onResult)
 
         override fun unlock(minutes: Int, reason: String, method: UnlockMethod) {
             SmartSession.start(this@MainActivity, minutes, reason, method)

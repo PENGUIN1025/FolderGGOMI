@@ -24,7 +24,8 @@ import java.util.Locale
 enum class UnlockMethod(val label: String) {
     FREE("무료"),
     WAIT("1분 대기"),
-    AD("광고"),
+    AD_WAIT("광고 실패·1분 대기"),
+    AD("광고 2개"),
     PAY("결제"),
     DEV("개발용"),
 }

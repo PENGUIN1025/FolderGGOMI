@@ -66,8 +66,10 @@ sealed interface Screen {
     data class UnlockMethod(val selected: Int = 0) : Screen
     data class UnlockInput(val method: com.aggro1025.jeopda.session.UnlockMethod) : Screen
     data class Dialer(val number: String = "") : Screen
-    /** 1분 기다린 뒤 해제 (광고 자리 임시 방법) */
-    data class UnlockWait(val minutes: Int, val reason: String) : Screen
+    /** 1분 기다린 뒤 해제 (광고를 불러오지 못했을 때) */
+    data class UnlockWait(val minutes: Int, val reason: String, val adFailed: Boolean = false) : Screen
+    /** 보상형 광고 2개 보기 */
+    data class UnlockAd(val minutes: Int, val reason: String, val attempt: Int = 0) : Screen
     /** keys: 초성 찾기로 누른 숫자들, selected: 목록에서 고른 줄 */
     data class Contacts(val keys: String = "", val selected: Int = 0) : Screen
 }

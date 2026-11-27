@@ -27,6 +27,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.aggro1025.jeopda.ads.UnlockAds
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -87,6 +89,8 @@ interface FolderActions {
     /** 알림 차단(알림 접근 권한)이 켜져 있는지 */
     fun isNotificationBlockOn(): Boolean
     fun unlock(minutes: Int, reason: String, method: UnlockMethod)
+    /** 보상형 광고를 차례로 보여 준다. 결과는 한 번만 온다 */
+    fun playUnlockAds(onProgress: (Int) -> Unit, onResult: (com.aggro1025.jeopda.ads.UnlockAds.Result) -> Unit)
 }
 
 private data class MethodOption(val method: UnlockMethod, val title: String, val note: String, val enabled: Boolean)
@@ -145,8 +149,7 @@ fun FolderApp(
             val free = actions.isFreeAvailable()
             val options = buildList {
                 add(MethodOption(UnlockMethod.FREE, "하루 1회 무료", if (free) "오늘 남아 있어요" else "오늘은 이미 썼어요", free))
-                // 광고(v0.2b)가 나오기 전까지는 광고 자리에 1분 기다리기
-                add(MethodOption(UnlockMethod.WAIT, "1분 기다리기", "광고 대신 잠시 기다리면 해제돼요", true))
+                add(MethodOption(UnlockMethod.AD, "광고 2개 보기", "2개를 끝까지 보면 해제돼요", true))
                 add(MethodOption(UnlockMethod.PAY, "500원 결제", "준비 중", false))
                 if (devUnlock) add(MethodOption(UnlockMethod.DEV, "개발용 해제", "디버그 빌드에만 보여요", true))
             }
@@ -187,6 +190,7 @@ fun FolderApp(
         is Screen.Dialer -> DialerScreen(screen.number, contacts, onScreen, actions, router)
         is Screen.Contacts -> ContactsScreen(screen, contacts, onScreen, actions, router)
         is Screen.UnlockWait -> UnlockWaitScreen(screen, onScreen, actions, router)
+        is Screen.UnlockAd -> UnlockAdScreen(screen, onScreen, actions, router)
     }
 }
 
@@ -422,8 +426,8 @@ private fun UnlockInputScreen(
             is ReasonCheck.TooShort -> error = "사유를 ${UnlockRules.MIN_REASON_CHARS}글자 이상 적어주세요 (지금 ${c.count}글자)"
             ReasonCheck.Repetitive -> error = "같은 글자만 반복할 수는 없어요"
             ReasonCheck.Ok ->
-                if (method == UnlockMethod.WAIT) {
-                    onScreen(Screen.UnlockWait(minutes, reason.trim()))
+                if (method == UnlockMethod.AD) {
+                    onScreen(Screen.UnlockAd(minutes, reason.trim()))
                 } else {
                     actions.unlock(minutes, reason, method)
                 }
@@ -549,14 +553,14 @@ private fun UnlockWaitScreen(
             val passed = ((android.os.SystemClock.elapsedRealtime() - startedAt) / 1000).toInt()
             left = (UnlockRules.WAIT_SECONDS - passed).coerceAtLeast(0)
         }
-        actions.unlock(screen.minutes, screen.reason, UnlockMethod.WAIT)
+        actions.unlock(screen.minutes, screen.reason, if (screen.adFailed) UnlockMethod.AD_WAIT else UnlockMethod.WAIT)
     }
     val cancel = { onScreen(Screen.Home) }
     val onKey: (FolderKey) -> Unit = { k ->
         if (k == FolderKey.SOFT_RIGHT || k == FolderKey.END) cancel()
     }
     BindKeys(router, onKey)
-    FolderPhone("잠시 기다려요", SoftLabels("", "", "취소"), onKey) {
+    FolderPhone(if (screen.adFailed) "광고를 불러오지 못했어요" else "잠시 기다려요", SoftLabels("", "", "취소"), onKey) {
         Column(
             Modifier.fillMaxSize().padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -574,6 +578,68 @@ private fun UnlockWaitScreen(
             )
             Spacer(Modifier.height(20.dp))
             Text("취소하면 폴더폰 모드로 남아요", style = scrText(12.sp, Scr.faint))
+        }
+    }
+}
+
+// ---------------- 광고 2개 보기 ----------------
+
+@Composable
+private fun UnlockAdScreen(
+    screen: Screen.UnlockAd,
+    onScreen: (Screen) -> Unit,
+    actions: FolderActions,
+    router: KeyRouter,
+) {
+    var index by remember(screen) { mutableIntStateOf(1) }
+    var cancelledNote by remember(screen) { mutableStateOf(false) }
+    val inspection = LocalInspectionMode.current
+    // 화면을 떠난 뒤 늦게 온 결과는 무시
+    var active by remember(screen) { mutableStateOf(true) }
+    DisposableEffect(screen) { onDispose { active = false } }
+    LaunchedEffect(screen) {
+        if (inspection) return@LaunchedEffect
+        actions.playUnlockAds(onProgress = { index = it }) { result ->
+            if (!active) return@playUnlockAds
+            when (result) {
+                UnlockAds.Result.DONE -> actions.unlock(screen.minutes, screen.reason, UnlockMethod.AD)
+                UnlockAds.Result.CANCELLED -> cancelledNote = true
+                UnlockAds.Result.FAILED -> onScreen(Screen.UnlockWait(screen.minutes, screen.reason, adFailed = true))
+            }
+        }
+    }
+    val onKey: (FolderKey) -> Unit = { k ->
+        when (k) {
+            FolderKey.SOFT_RIGHT, FolderKey.END -> onScreen(Screen.Home)
+            FolderKey.SOFT_LEFT, FolderKey.OK -> if (cancelledNote) onScreen(screen.copy(attempt = screen.attempt + 1))
+            else -> Unit
+        }
+    }
+    BindKeys(router, onKey)
+    FolderPhone("광고 보고 해제", SoftLabels(if (cancelledNote) "다시 보기" else "", "", "취소"), onKey) {
+        Column(
+            Modifier.fillMaxSize().padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            if (cancelledNote) {
+                Text("광고를 끝까지 봐야 해제돼요", style = scrText(17.sp, weight = FontWeight.Bold))
+                Spacer(Modifier.height(8.dp))
+                Text("다시 보기를 누르면 처음부터 다시 봐요", style = scrText(13.sp, Scr.dim))
+            } else {
+                Text("$index / ${UnlockAds.COUNT}", style = scrText(56.sp, weight = FontWeight.Light))
+                Text("광고를 불러오는 중이에요", style = scrText(15.sp, Scr.dim))
+                Spacer(Modifier.height(16.dp))
+                Text("광고 ${UnlockAds.COUNT}개를 끝까지 보면 스마트폰 모드가 켜져요", style = scrText(13.sp, Scr.faint))
+            }
+            Spacer(Modifier.height(20.dp))
+            Text(
+                "${durationText(screen.minutes)} · ${screen.reason}",
+                style = scrText(13.sp, Scr.faint),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -630,6 +696,7 @@ internal object PreviewActions : FolderActions {
     override fun isFreeAvailable() = true
     override fun isNotificationBlockOn() = true
     override fun unlock(minutes: Int, reason: String, method: UnlockMethod) = Unit
+    override fun playUnlockAds(onProgress: (Int) -> Unit, onResult: (com.aggro1025.jeopda.ads.UnlockAds.Result) -> Unit) = Unit
 }
 
 internal val previewMenu = listOf(

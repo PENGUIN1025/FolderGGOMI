@@ -153,11 +153,12 @@ fun SettingsDesign(ui: SettingsUi, cb: SettingsCallbacks = NoCallbacks) {
                 Icon(Icons.Filled.Lock, null, tint = Scr.accent, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text("정보를 가져가지 않아요", style = t(15.sp, weight = FontWeight.Bold))
+                    Text("접다는 정보를 가져가지 않아요", style = t(15.sp, weight = FontWeight.Bold))
                     Spacer(Modifier.height(2.dp))
                     Text(
                         "접다가 요청하는 권한은 이 폰을 폴더폰처럼 쓰기 위한 것뿐이에요. " +
-                            "연락처, 앱 목록, 알림 내용은 폰 안에서만 쓰고 저장하거나 밖으로 보내지 않아요.",
+                            "연락처, 앱 목록, 알림 내용, 해제 사유는 폰 안에서만 쓰고 밖으로 보내지 않아요. " +
+                            "단, '광고 보기'로 해제할 때는 구글 광고가 광고를 보여 주는 데 필요한 정보(광고 ID 등)를 사용해요.",
                         style = t(13.sp, Scr.text.copy(alpha = 0.9f)),
                     )
                 }

@@ -7,5 +7,6 @@ class JeopdaApp : Application() {
     override fun onCreate() {
         super.onCreate()
         SmartSession.createChannels(this)
+        com.aggro1025.jeopda.ads.UnlockAds.init(this)
     }
 }
