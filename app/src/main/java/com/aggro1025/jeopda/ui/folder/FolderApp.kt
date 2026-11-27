@@ -596,8 +596,8 @@ private fun UnlockWaitScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            BreathingCircle()
-            Spacer(Modifier.height(18.dp))
+            Text("$left", style = scrText(80.sp, weight = FontWeight.Light))
+            Spacer(Modifier.height(12.dp))
             // 문구는 10초마다 바뀐다
             Text(
                 MINDFUL_LINES[(passed / 10 + screen.reason.length) % MINDFUL_LINES.size],
@@ -605,7 +605,7 @@ private fun UnlockWaitScreen(
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(10.dp))
-            Text("${left}초 뒤에 스마트폰 모드가 켜져요", style = scrText(13.sp, Scr.dim))
+            Text("초 뒤에 스마트폰 모드가 켜져요", style = scrText(13.sp, Scr.dim))
             Spacer(Modifier.height(14.dp))
             Text(
                 "적어 둔 이유: ${screen.reason} · ${durationText(screen.minutes)}",
