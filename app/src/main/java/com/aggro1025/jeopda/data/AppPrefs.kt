@@ -31,6 +31,11 @@ class AppPrefs(context: Context) {
         get() = sp.getString(KEY_LAST_FREE_DATE, null)
         set(v) { sp.edit().putString(KEY_LAST_FREE_DATE, v).commit() }
 
+    /** lastFreeDate 그날 쓴 무료 해제 횟수 (이전 버전에서 넘어온 기록은 1회로 봄) */
+    var freeUsedCount: Int
+        get() = sp.getInt(KEY_FREE_USED, 1)
+        set(v) { sp.edit().putInt(KEY_FREE_USED, v).commit() }
+
     /** 스마트폰 모드 종료 시점(부팅 후 경과 시간 ms)과 그때의 부팅 번호. 시계를 돌려도 남은 시간이 늘지 않게 */
     var smartEndElapsed: Long
         get() = sp.getLong(KEY_SMART_END_ELAPSED, 0L)
@@ -148,6 +153,7 @@ class AppPrefs(context: Context) {
         val USER_SLOTS = 6..9
         const val MAX_ALLOWED_NOTIF_APPS = 3
         private const val KEY_SMART_END_ELAPSED = "smart_end_elapsed"
+        private const val KEY_FREE_USED = "free_used_count"
         private const val KEY_SMART_BOOT = "smart_boot"
         private const val KEY_ANCHOR_WALL = "anchor_wall"
         private const val KEY_ANCHOR_ELAPSED = "anchor_elapsed"

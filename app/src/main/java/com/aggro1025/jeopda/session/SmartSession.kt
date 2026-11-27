@@ -25,7 +25,7 @@ enum class UnlockMethod(val label: String) {
     FREE("무료"),
     WAIT("1분 대기"),
     AD_WAIT("광고 실패·1분 대기"),
-    AD("광고 2개"),
+    AD("광고 보며 멈추기"),
     PAY("결제"),
     DEV("개발용"),
 }
@@ -75,7 +75,11 @@ object SmartSession {
         prefs.smartEndElapsed = Clock.elapsed() + duration
         prefs.smartBoot = Clock.bootCount(context)
         // 무료 1회는 해제가 완료되는 이 시점에만 소모한다 (4장 공통 규칙 6). 날짜는 믿을 수 있는 시각 기준
-        if (method == UnlockMethod.FREE) prefs.lastFreeDate = today(context).toString()
+        if (method == UnlockMethod.FREE) {
+            val day = today(context).toString()
+            prefs.freeUsedCount = if (prefs.lastFreeDate == day) prefs.freeUsedCount + 1 else 1
+            prefs.lastFreeDate = day
+        }
         prefs.addReason(AppPrefs.ReasonEntry(now, minutes, method.name, reason.trim()))
         nm(context).cancel(NOTIF_ALERT)
         scheduleAlarms(context)
@@ -119,8 +123,12 @@ object SmartSession {
     fun today(context: Context): LocalDate =
         Instant.ofEpochMilli(Clock.now(context)).atZone(ZoneId.systemDefault()).toLocalDate()
 
-    fun isFreeAvailableToday(context: Context): Boolean =
-        UnlockRules.isFreeAvailable(AppPrefs(context).lastFreeDate, today(context))
+    fun freeRemainingToday(context: Context): Int {
+        val prefs = AppPrefs(context)
+        return UnlockRules.freeRemaining(prefs.lastFreeDate, prefs.freeUsedCount, today(context))
+    }
+
+    fun isFreeAvailableToday(context: Context): Boolean = freeRemainingToday(context) > 0
 
     fun canScheduleExact(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am(context).canScheduleExactAlarms()

@@ -85,7 +85,9 @@ interface FolderActions {
     fun hasContactsPermission(): Boolean
     fun requestContactsPermission()
     fun openSettings()
-    fun isFreeAvailable(): Boolean
+    fun isFreeAvailable(): Boolean = freeRemaining() > 0
+    /** 오늘 남은 무료 해제 횟수 */
+    fun freeRemaining(): Int
     /** 알림 차단(알림 접근 권한)이 켜져 있는지 */
     fun isNotificationBlockOn(): Boolean
     /** 다른 앱 막기(사용 기록·다른 앱 위에 표시 권한)가 켜져 있는지 */
@@ -123,7 +125,7 @@ fun FolderApp(
             BindKeys(router, onKey)
             FolderPhone(null, SoftLabels("해제", "메뉴", "설정"), onKey) {
                 HomeDisplay(
-                    actions.isFreeAvailable(),
+                    actions.freeRemaining(),
                     actions.isNotificationBlockOn() && actions.isAppGuardOn(),
                     onFixNotif = { actions.openSettings() },
                 )
@@ -152,10 +154,15 @@ fun FolderApp(
         }
 
         is Screen.UnlockMethod -> {
-            val free = actions.isFreeAvailable()
             val options = buildList {
-                add(MethodOption(UnlockMethod.FREE, "하루 1회 무료", if (free) "오늘 남아 있어요" else "오늘은 이미 썼어요", free))
-                add(MethodOption(UnlockMethod.AD, "광고 2개 보기", "2개를 끝까지 보면 해제돼요", true))
+                val left = actions.freeRemaining()
+                add(
+                    MethodOption(
+                        UnlockMethod.FREE, "하루 ${UnlockRules.FREE_PER_DAY}회 무료",
+                        if (left > 0) "오늘 ${left}회 남았어요" else "오늘은 다 썼어요", left > 0,
+                    ),
+                )
+                add(MethodOption(UnlockMethod.AD, "광고 보며 잠깐 멈추기", "광고 2개를 보는 동안 정말 필요한지 생각해요", true))
                 add(MethodOption(UnlockMethod.PAY, "500원 결제", "준비 중", false))
                 if (devUnlock) add(MethodOption(UnlockMethod.DEV, "개발용 해제", "디버그 빌드에만 보여요", true))
             }
@@ -232,7 +239,8 @@ internal fun BindKeys(router: KeyRouter, onKey: (FolderKey) -> Unit) {
 // ---------------- 홈 (대기 화면) ----------------
 
 @Composable
-private fun HomeDisplay(freeAvailable: Boolean, notifBlockOn: Boolean, onFixNotif: () -> Unit) {
+private fun HomeDisplay(freeLeft: Int, notifBlockOn: Boolean, onFixNotif: () -> Unit) {
+    val freeAvailable = freeLeft > 0
     val now = rememberNow()
     val date = remember(now / 60_000) { Date(now) }
 
@@ -277,7 +285,7 @@ private fun HomeDisplay(freeAvailable: Boolean, notifBlockOn: Boolean, onFixNoti
             Text(
                 when {
                     !notifBlockOn -> "  알림·앱 차단이 꺼져 있어요 · 눌러서 켜기"
-                    freeAvailable -> "  오늘 무료 해제 1회 남음"
+                    freeAvailable -> "  오늘 무료 해제 ${freeLeft}회 남음"
                     else -> "  오늘 무료 해제를 썼어요"
                 },
                 style = scrText(12.sp, if (notifBlockOn) Scr.dim else Scr.warn),
@@ -652,7 +660,7 @@ private fun UnlockAdScreen(
         }
     }
     BindKeys(router, onKey)
-    FolderPhone("광고 보고 해제", SoftLabels(if (cancelledNote) "다시 보기" else "", "", "취소"), onKey) {
+    FolderPhone("잠깐 멈추는 시간", SoftLabels(if (cancelledNote) "다시 보기" else "", "", "취소"), onKey) {
         Column(
             Modifier.fillMaxSize().padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -735,7 +743,7 @@ internal object PreviewActions : FolderActions {
     override fun hasContactsPermission() = true
     override fun requestContactsPermission() = Unit
     override fun openSettings() = Unit
-    override fun isFreeAvailable() = true
+    override fun freeRemaining() = 3
     override fun isNotificationBlockOn() = true
     override fun unlock(minutes: Int, reason: String, method: UnlockMethod) = Unit
     override fun playUnlockAds(onProgress: (Int) -> Unit, onResult: (com.aggro1025.jeopda.ads.UnlockAds.Result) -> Unit) = Unit

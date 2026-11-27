@@ -42,8 +42,10 @@ class UnlockRulesTest {
     @Test
     fun freeUnlockResetsAtLocalMidnight() {
         val today = LocalDate.of(2026, 11, 26)
-        assertTrue(UnlockRules.isFreeAvailable(null, today))
-        assertFalse(UnlockRules.isFreeAvailable("2026-11-26", today))
-        assertTrue(UnlockRules.isFreeAvailable("2026-11-25", today))
+        assertEquals(3, UnlockRules.freeRemaining(null, 0, today))
+        assertEquals(2, UnlockRules.freeRemaining("2026-11-26", 1, today))
+        assertEquals(0, UnlockRules.freeRemaining("2026-11-26", 3, today))
+        assertFalse(UnlockRules.isFreeAvailable("2026-11-26", 3, today))
+        assertEquals(3, UnlockRules.freeRemaining("2026-11-25", 3, today))
     }
 }

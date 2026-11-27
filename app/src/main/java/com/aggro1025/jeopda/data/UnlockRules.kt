@@ -41,12 +41,23 @@ object UnlockRules {
     /** v0.2a 임시 해제(광고 자리): 기다리는 시간. 광고를 불러오지 못했을 때도 같은 시간 */
     const val WAIT_SECONDS = 60
 
+    /** 하루 무료 해제 횟수. 문서의 하루 1회에서 사용자 결정으로 3회로 변경 */
+    const val FREE_PER_DAY = 3
+
     /**
-     * 하루 1회 무료: 마지막 사용일보다 오늘이 뒤일 때만 사용 가능.
-     * (시계를 과거로 돌려도 다시 생기지 않게 "다른 날"이 아니라 "다음 날 이후"로 판단)
+     * 오늘 남은 무료 해제 횟수.
+     * 마지막으로 쓴 날보다 오늘이 뒤면 다시 [FREE_PER_DAY]회, 같은 날이면 남은 만큼,
+     * 시계를 과거로 돌려 마지막 사용일보다 앞이면 0 (다시 생기지 않게).
      */
-    fun isFreeAvailable(lastFreeDate: String?, today: LocalDate): Boolean {
-        val last = lastFreeDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: return true
-        return today.isAfter(last)
+    fun freeRemaining(lastFreeDate: String?, usedThatDay: Int, today: LocalDate): Int {
+        val last = lastFreeDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: return FREE_PER_DAY
+        return when {
+            today.isAfter(last) -> FREE_PER_DAY
+            today == last -> (FREE_PER_DAY - usedThatDay).coerceAtLeast(0)
+            else -> 0
+        }
     }
+
+    fun isFreeAvailable(lastFreeDate: String?, usedThatDay: Int, today: LocalDate): Boolean =
+        freeRemaining(lastFreeDate, usedThatDay, today) > 0
 }

@@ -41,7 +41,7 @@ class TrustedTimeTest {
 
     @Test
     fun freeUnlockDoesNotComeBackWhenClockGoesBackward() {
-        assertFalse(UnlockRules.isFreeAvailable("2026-11-27", LocalDate.of(2026, 11, 26)))
-        assertTrue(UnlockRules.isFreeAvailable("2026-11-27", LocalDate.of(2026, 11, 28)))
+        assertFalse(UnlockRules.isFreeAvailable("2026-11-27", 1, LocalDate.of(2026, 11, 26)))
+        assertTrue(UnlockRules.isFreeAvailable("2026-11-27", 3, LocalDate.of(2026, 11, 28)))
     }
 }

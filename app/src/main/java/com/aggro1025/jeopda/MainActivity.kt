@@ -372,7 +372,7 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
         }
 
-        override fun isFreeAvailable(): Boolean = SmartSession.isFreeAvailableToday(this@MainActivity)
+        override fun freeRemaining(): Int = SmartSession.freeRemainingToday(this@MainActivity)
 
         override fun isNotificationBlockOn(): Boolean = notifBlockOn
 

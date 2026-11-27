@@ -61,7 +61,7 @@ class SoftKeyTest {
         launch()
         compose.onNodeWithText("해제").performClick()
         compose.mainClock.advanceTimeBy(100)
-        compose.onNodeWithText("하루 1회 무료").assertIsDisplayed()
+        compose.onNodeWithText("하루 3회 무료").assertIsDisplayed()
     }
 
 
