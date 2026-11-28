@@ -78,6 +78,9 @@ class ScreenshotTest {
     @Test fun settingsDesign() = shootContent("9_settings_design") {
         com.aggro1025.jeopda.ui.settings.SettingsDesign(com.aggro1025.jeopda.ui.settings.previewSettingsFirstRun)
     }
+    @Test fun settingsDesignPage2() = shootContent("9b_settings_apps") {
+        com.aggro1025.jeopda.ui.settings.SettingsDesign(com.aggro1025.jeopda.ui.settings.previewSettingsFirstRun, page = 1)
+    }
 
 
     // 해제 입력 전체 모습 (스크롤 없이 보이게 세로로 긴 화면)

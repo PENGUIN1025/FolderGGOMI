@@ -107,166 +107,270 @@ private fun t(size: TextUnit, color: Color = Scr.text, weight: FontWeight = Font
 private val Card = Color(0x1FFFFFFF)
 private val CardLine = Color(0x26FFFFFF)
 
+/**
+ * 설정 화면. 두 페이지로 나눈다.
+ * - 0: 권한 (정보 안내 + 권한 체크리스트)
+ * - 1: 앱 설정 (메뉴, 알림 받을 앱, 기타)
+ * 처음 설정 때는 1/2 → 2/2 단계로 넘어가고, 그 뒤에는 위쪽 탭으로 오간다.
+ */
 @Composable
-fun SettingsDesign(ui: SettingsUi, cb: SettingsCallbacks = NoCallbacks) {
+fun SettingsDesign(
+    ui: SettingsUi,
+    cb: SettingsCallbacks = NoCallbacks,
+    page: Int = 0,
+    onPage: (Int) -> Unit = {},
+) {
+    val requiredDone = ui.steps.filter { it.required }.all { it.done }
     Box(
         Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(Scr.wallTop, Scr.wallBottom))),
     ) {
-        Column(
-            Modifier
-                .safeDrawingPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            // 머리말
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Lcd.body),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Image(
-                        painterResource(R.drawable.ic_launcher_foreground),
-                        null,
-                        Modifier.size(44.dp).graphicsLayer(scaleX = 1.35f, scaleY = 1.35f),
-                    )
+        Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+            // 머리말 (고정)
+            Column(
+                Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Lcd.body),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painterResource(R.drawable.ic_launcher_foreground),
+                            null,
+                            Modifier.size(44.dp).graphicsLayer(scaleX = 1.35f, scaleY = 1.35f),
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("접다 설정", style = t(22.sp, weight = FontWeight.Bold))
+                        Text("버전 ${ui.version} · ${ui.modeText}", style = t(13.sp, Scr.dim))
+                    }
                 }
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text("접다 설정", style = t(22.sp, weight = FontWeight.Bold))
-                    Text("버전 ${ui.version} · ${ui.modeText}", style = t(13.sp, Scr.dim))
+                if (ui.homeLost) {
+                    Banner(
+                        "접다가 기본 홈 앱이 아니에요",
+                        "지금은 폴더폰 화면이 뜨지 않아요. 눌러서 다시 홈 앱으로 지정하세요",
+                    ) { cb.onStep(StepId.HOME) }
+                }
+                if (ui.smartEndText != null) {
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("스마트폰 모드", style = t(15.sp, weight = FontWeight.Bold))
+                            Text(ui.smartEndText, style = t(13.sp, Scr.dim))
+                        }
+                        Text(
+                            "폴더폰으로",
+                            style = t(14.sp, weight = FontWeight.Bold),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep)))
+                                .clickable(onClick = cb::onReturnToFolder)
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+                if (ui.setupDone) {
+                    Tabs(page, onPage)
+                } else {
+                    StepHeader(page)
                 }
             }
 
-            // 안심 문구
-            Row(
+            // 페이지 내용 (이 부분만 스크롤)
+            Column(
                 Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0x335AB0FF))
-                    .border(1.dp, Color(0x665AB0FF), RoundedCornerShape(14.dp))
-                    .padding(14.dp),
-                verticalAlignment = Alignment.Top,
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Icon(Icons.Filled.Lock, null, tint = Scr.accent, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text("연락처·알림·사용 기록은 폰 밖으로 나가지 않아요", style = t(15.sp, weight = FontWeight.Bold))
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        "접다가 요청하는 권한은 이 폰을 폴더폰처럼 쓰기 위한 것뿐이에요. " +
-                            "연락처, 앱 목록, 알림, 사용 기록, 해제 사유는 폰 안에서만 쓰고 저장하거나 보내지 않아요.",
-                        style = t(13.sp, Scr.text.copy(alpha = 0.9f)),
-                    )
-                }
+                if (page == 0) PermissionPage(ui, cb) else AppSettingsPage(ui, cb)
+                Spacer(Modifier.height(4.dp))
             }
 
-            if (ui.homeLost) {
-                Banner(
-                    "접다가 기본 홈 앱이 아니에요",
-                    "지금은 폴더폰 화면이 뜨지 않아요. 눌러서 다시 홈 앱으로 지정하세요",
-                ) { cb.onStep(StepId.HOME) }
-            }
-
-            if (ui.smartEndText != null) {
-                Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text("스마트폰 모드", style = t(15.sp, weight = FontWeight.Bold))
-                    Text(ui.smartEndText, style = t(13.sp, Scr.dim))
-                    PrimaryButton("폴더폰으로 돌아가기", enabled = true, onClick = cb::onReturnToFolder)
-                    Text("지금 돌아가면 남은 시간은 사라져요", style = t(12.sp, Scr.dim))
-                }
-            }
-
-            // 설정 단계
-            val doneCount = ui.steps.count { it.done }
-            Section("폴더폰 준비 ${doneCount}/${ui.steps.size}")
-            Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card),
-            ) {
-                ui.steps.forEachIndexed { i, s ->
-                    StepRow(i + 1, s) { cb.onStep(s.id) }
-                    if (i < ui.steps.lastIndex) Divider()
-                }
-            }
+            // 처음 설정 때의 다음·이전 버튼 (고정)
             if (!ui.setupDone) {
-                val ready = ui.steps.filter { it.required }.all { it.done }
-                PrimaryButton(if (ready) "폴더폰 모드 시작" else "필수 설정을 먼저 마쳐 주세요", enabled = ready, onClick = cb::onStart)
-            }
-
-            // 메뉴
-            Section("폴더폰 메뉴")
-            Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ui.slots.chunked(3).forEach { row ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { item ->
-                            SlotCell(item, ui.editable, Modifier.weight(1f), onClick = { cb.onSlot(item.slot) }, onLong = { cb.onClearSlot(item.slot) })
+                Column(Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
+                    if (page == 0) {
+                        PrimaryButton(
+                            if (requiredDone) "다음: 앱 설정" else "필수 권한을 먼저 켜 주세요",
+                            enabled = requiredDone,
+                        ) { onPage(1) }
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(Modifier.weight(0.4f)) { SecondaryButton("이전") { onPage(0) } }
+                            Box(Modifier.weight(0.6f)) { PrimaryButton("폴더폰 모드 시작", enabled = requiredDone, onClick = cb::onStart) }
                         }
                     }
                 }
-                Text(
-                    if (ui.editable) "6~9번을 눌러 앱을 고르고, 길게 눌러 비워요. 게임·소셜·영상 앱과 브라우저는 넣을 수 없어요"
-                    else "폴더폰 모드에서는 보기만 할 수 있어요. 바꾸려면 먼저 해제하세요",
-                    style = t(12.sp, Scr.dim),
-                )
             }
-
-            // 알림 허용 앱
-            Section("알림을 받을 앱 ${ui.allowedNotifApps.size}/3")
-            Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text("전화, 문자, 알람, 재난문자는 항상 와요. 그 밖의 앱 알림은 폴더폰 모드에서 지워져요", style = t(13.sp, Scr.dim))
-                ui.allowedNotifApps.forEach { app ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("· ${app.label}", style = t(15.sp), modifier = Modifier.weight(1f))
-                        if (ui.editable) {
-                            Text(
-                                "빼기",
-                                style = t(13.sp, Scr.dim),
-                                modifier = Modifier.clickable { cb.onRemoveNotifApp(app.pkg) }.padding(6.dp),
-                            )
-                        }
-                    }
-                }
-                if (ui.allowedNotifApps.size < 3 && ui.editable) {
-                    Text(
-                        "+ 앱 추가",
-                        style = t(15.sp, Scr.accent, FontWeight.Bold),
-                        modifier = Modifier.clickable(onClick = cb::onAddNotifApp).padding(vertical = 4.dp),
-                    )
-                }
-                if (!ui.editable) Text("폴더폰 모드에서는 보기만 할 수 있어요", style = t(12.sp, Scr.dim))
-            }
-
-            // 기타
-            Section("기타")
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)) {
-                LinkRow("해제 기록", "사유·사용 시간", cb::onHistory)
-                Divider()
-                LinkRow("스마트폰 모드에서 쓸 홈 화면", ui.smartHomeLabel, cb::onSmartHome)
-                Divider()
-                LinkRow(
-                    "홈 버튼 누르면 원래 홈 첫 화면으로",
-                    if (ui.smartHomeFresh) "켜짐" else "꺼짐",
-                    cb::onToggleSmartHomeFresh,
-                )
-                Divider()
-                LinkRow("개인정보처리방침", "", cb::onPrivacy)
-                Divider()
-                LinkRow("오픈소스 라이선스", "", cb::onLicenses)
-            }
-            Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+/** 처음 설정: 1/2 권한 → 2/2 앱 설정 */
+@Composable
+private fun StepHeader(page: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        listOf("권한 설정", "앱 설정").forEachIndexed { i, label ->
+            val on = i == page
+            Box(
+                Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(if (on) Scr.accent else Color(0x33FFFFFF)),
+                contentAlignment = Alignment.Center,
+            ) { Text("${i + 1}", style = t(13.sp, weight = FontWeight.Bold)) }
+            Spacer(Modifier.width(6.dp))
+            Text(label, style = t(14.sp, if (on) Scr.text else Scr.dim, if (on) FontWeight.Bold else FontWeight.Normal))
+            if (i == 0) {
+                Box(Modifier.padding(horizontal = 10.dp).width(24.dp).height(1.dp).background(Color(0x40FFFFFF)))
+            }
+        }
+    }
+}
+
+/** 설정이 끝난 뒤: 권한 / 앱 설정 탭 */
+@Composable
+private fun Tabs(page: Int, onPage: (Int) -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0x33000000))
+            .padding(4.dp),
+    ) {
+        listOf("권한", "앱 설정").forEachIndexed { i, label ->
+            val on = i == page
+            val base = Modifier.weight(1f).clip(RoundedCornerShape(9.dp))
+            Box(
+                (if (on) base.background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))) else base)
+                    .clickable { onPage(i) }
+                    .padding(vertical = 9.dp),
+                contentAlignment = Alignment.Center,
+            ) { Text(label, style = t(15.sp, if (on) Scr.text else Scr.dim, FontWeight.Bold)) }
+        }
+    }
+}
+
+@Composable
+private fun PermissionPage(ui: SettingsUi, cb: SettingsCallbacks) {
+    // 안심 문구
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0x335AB0FF))
+            .border(1.dp, Color(0x665AB0FF), RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(Icons.Filled.Lock, null, tint = Scr.accent, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text("연락처·알림·사용 기록은 폰 밖으로 나가지 않아요", style = t(15.sp, weight = FontWeight.Bold))
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "접다가 요청하는 권한은 이 폰을 폴더폰처럼 쓰기 위한 것뿐이에요. " +
+                    "연락처, 앱 목록, 알림, 사용 기록, 해제 사유는 폰 안에서만 쓰고 저장하거나 보내지 않아요.",
+                style = t(13.sp, Scr.text.copy(alpha = 0.9f)),
+            )
+        }
+    }
+    val doneCount = ui.steps.count { it.done }
+    Section("폴더폰 준비 ${doneCount}/${ui.steps.size}")
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)) {
+        ui.steps.forEachIndexed { i, s ->
+            StepRow(i + 1, s) { cb.onStep(s.id) }
+            if (i < ui.steps.lastIndex) Divider()
+        }
+    }
+}
+
+@Composable
+private fun AppSettingsPage(ui: SettingsUi, cb: SettingsCallbacks) {
+    Section("폴더폰 메뉴")
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ui.slots.chunked(3).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { item ->
+                    SlotCell(item, ui.editable, Modifier.weight(1f), onClick = { cb.onSlot(item.slot) }, onLong = { cb.onClearSlot(item.slot) })
+                }
+            }
+        }
+        Text(
+            if (ui.editable) "6~9번을 눌러 앱을 고르고, 길게 눌러 비워요. 게임·소셜·영상 앱과 브라우저는 넣을 수 없어요"
+            else "폴더폰 모드에서는 보기만 할 수 있어요. 바꾸려면 먼저 해제하세요",
+            style = t(12.sp, Scr.dim),
+        )
+    }
+
+    Section("알림을 받을 앱 ${ui.allowedNotifApps.size}/3")
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text("전화, 문자, 알람, 재난문자는 항상 와요. 그 밖의 앱 알림은 폴더폰 모드에서 지워져요", style = t(13.sp, Scr.dim))
+        ui.allowedNotifApps.forEach { app ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("· ${app.label}", style = t(15.sp), modifier = Modifier.weight(1f))
+                if (ui.editable) {
+                    Text(
+                        "빼기",
+                        style = t(13.sp, Scr.dim),
+                        modifier = Modifier.clickable { cb.onRemoveNotifApp(app.pkg) }.padding(6.dp),
+                    )
+                }
+            }
+        }
+        if (ui.allowedNotifApps.size < 3 && ui.editable) {
+            Text(
+                "+ 앱 추가",
+                style = t(15.sp, Scr.accent, FontWeight.Bold),
+                modifier = Modifier.clickable(onClick = cb::onAddNotifApp).padding(vertical = 4.dp),
+            )
+        }
+        if (!ui.editable) Text("폴더폰 모드에서는 보기만 할 수 있어요", style = t(12.sp, Scr.dim))
+    }
+
+    Section("기타")
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)) {
+        LinkRow("해제 기록", "사유·사용 시간", cb::onHistory)
+        Divider()
+        LinkRow("스마트폰 모드에서 쓸 홈 화면", ui.smartHomeLabel, cb::onSmartHome)
+        Divider()
+        LinkRow(
+            "홈 버튼 누르면 원래 홈 첫 화면으로",
+            if (ui.smartHomeFresh) "켜짐" else "꺼짐",
+            cb::onToggleSmartHomeFresh,
+        )
+        Divider()
+        LinkRow("개인정보처리방침", "", cb::onPrivacy)
+        Divider()
+        LinkRow("오픈소스 라이선스", "", cb::onLicenses)
+    }
+}
+
+@Composable
+private fun SecondaryButton(text: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0x33FFFFFF))
+            .clickable(onClick = onClick)
+            .padding(vertical = 15.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, style = t(16.sp, weight = FontWeight.Bold)) }
 }
 
 @Composable

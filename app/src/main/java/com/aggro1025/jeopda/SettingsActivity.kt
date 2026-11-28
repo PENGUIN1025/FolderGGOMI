@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -131,6 +132,8 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
     var showLicenses by remember { mutableStateOf(false) }
     var showHomeChoice by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
+    // 0: 권한, 1: 앱 설정
+    var page by rememberSaveable { mutableIntStateOf(0) }
 
     val ui = remember(tick) { buildUi(context, prefs) }
 
@@ -199,7 +202,8 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
         HistoryScreen(prefs.reasons(), System.currentTimeMillis(), onBack = { showHistory = false })
         return
     }
-    SettingsDesign(ui, cb)
+    if (page == 1) BackHandler { page = 0 }
+    SettingsDesign(ui, cb, page = page, onPage = { page = it })
 
     picker?.let { (mode, slot) ->
         AppPickerDialog(
