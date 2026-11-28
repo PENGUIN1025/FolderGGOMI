@@ -385,8 +385,8 @@ class MainActivity : ComponentActivity() {
         override fun buyRefill() {
             RefillBilling.buy(this@MainActivity) { result ->
                 val msg = when (result) {
-                    RefillBilling.Result.REFILLED -> "오늘 무료 해제가 다시 ${UnlockRules.FREE_PER_DAY}회 생겼어요"
-                    RefillBilling.Result.PENDING -> "결제가 처리되는 중이에요. 끝나면 무료 해제가 채워져요"
+                    RefillBilling.Result.REFILLED -> "오늘 무료 해제가 ${UnlockRules.FREE_PER_DAY}회로 초기화됐어요"
+                    RefillBilling.Result.PENDING -> "결제가 처리되는 중이에요. 끝나면 무료 해제가 초기화돼요"
                     RefillBilling.Result.UNAVAILABLE -> "지금은 결제를 할 수 없어요. 플레이스토어에서 받은 접다에서만 결제돼요"
                     RefillBilling.Result.ERROR -> "결제를 마치지 못했어요. 다시 시도해 주세요"
                     RefillBilling.Result.CANCELLED -> null

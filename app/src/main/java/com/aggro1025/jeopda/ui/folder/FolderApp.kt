@@ -168,8 +168,8 @@ fun FolderApp(
                 // 500원 결제 = 오늘 무료 해제를 다시 채우기 (무료가 남아 있으면 살 필요가 없어서 흐리게)
                 add(
                     MethodOption(
-                        UnlockMethod.PAY, "500원으로 무료 해제 다시 채우기",
-                        if (left > 0) "무료가 ${left}회 남아 있어요" else "결제하면 오늘 무료 ${UnlockRules.FREE_PER_DAY}회가 다시 생겨요",
+                        UnlockMethod.PAY, "500원으로 무료 해제 초기화",
+                        if (left > 0) "무료가 ${left}회 남아 있어요" else "결제하면 오늘 무료 해제가 ${UnlockRules.FREE_PER_DAY}회로 초기화돼요",
                         left == 0,
                     ),
                 )
