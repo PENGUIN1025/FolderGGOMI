@@ -164,12 +164,12 @@ fun FolderApp(
                         if (left > 0) "오늘 ${left}회 남았어요" else "오늘은 다 썼어요", left > 0,
                     ),
                 )
-                add(MethodOption(UnlockMethod.AD, "광고 보며 잠깐 멈추기", "광고 2개를 보는 동안 정말 필요한지 생각해요", true))
+                add(MethodOption(UnlockMethod.AD, "광고 보고 폴더폰 모드 해제하기", "광고 2개를 보는 동안 정말 필요한지 생각해요", true))
                 // 500원 결제 = 오늘 무료 해제를 다시 채우기 (무료가 남아 있으면 살 필요가 없어서 흐리게)
                 add(
                     MethodOption(
                         UnlockMethod.PAY, "500원으로 무료 해제 초기화",
-                        if (left > 0) "무료가 ${left}회 남아 있어요" else "결제하면 오늘 무료 해제가 ${UnlockRules.FREE_PER_DAY}회로 초기화돼요",
+                        if (left > 0) "무료가 ${left}회 남아 있어요" else "",
                         left == 0,
                     ),
                 )
@@ -436,7 +436,8 @@ private fun ListRow(
         Spacer(Modifier.width(10.dp))
         Column {
             Text(title, style = scrText(16.sp, fg, if (selected) FontWeight.Bold else FontWeight.Normal))
-            Text(note, style = scrText(12.sp, if (selected) Scr.text.copy(alpha = 0.85f) else Scr.faint))
+            // 설명이 없으면 제목만 (예: 결제 가능할 때의 500원 초기화)
+            if (note.isNotEmpty()) Text(note, style = scrText(12.sp, if (selected) Scr.text.copy(alpha = 0.85f) else Scr.faint))
         }
     }
 }

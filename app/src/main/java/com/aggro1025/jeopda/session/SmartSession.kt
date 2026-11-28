@@ -25,7 +25,7 @@ enum class UnlockMethod(val label: String) {
     FREE("무료"),
     WAIT("1분 대기"),
     AD_WAIT("광고 실패·1분 대기"),
-    AD("광고 보며 멈추기"),
+    AD("광고 보고 해제"),
     PAY("결제로 초기화"),
     DEV("개발용"),
 }
