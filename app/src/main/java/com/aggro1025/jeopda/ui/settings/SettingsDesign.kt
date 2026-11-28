@@ -69,6 +69,8 @@ data class SettingsUi(
     val smartHomeLabel: String,
     /** 홈 버튼 누르면 원래 홈 화면을 처음 상태로 새로 열기 */
     val smartHomeFresh: Boolean = true,
+    /** 지금 적용된 폴더폰 테마 이름 */
+    val themeLabel: String = "기본",
 )
 
 interface SettingsCallbacks {
@@ -84,6 +86,7 @@ interface SettingsCallbacks {
     fun onLicenses()
     fun onHistory()
     fun onToggleSmartHomeFresh()
+    fun onTheme() = Unit
 }
 
 object NoCallbacks : SettingsCallbacks {
@@ -339,6 +342,8 @@ private fun AppSettingsPage(ui: SettingsUi, cb: SettingsCallbacks) {
 
     Section("기타")
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)) {
+        LinkRow("폴더폰 테마", ui.themeLabel, cb::onTheme)
+        Divider()
         LinkRow("해제 기록", "사유·사용 시간", cb::onHistory)
         Divider()
         LinkRow("스마트폰 모드 홈 화면", ui.smartHomeLabel, cb::onSmartHome)

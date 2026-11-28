@@ -100,14 +100,22 @@ fun FolderPhone(
     title: String?,
     soft: SoftLabels,
     onKey: (FolderKey) -> Unit,
+    /** 홈 화면: 테마의 큰 그림(장면)을 보여 준다 */
+    scene: Boolean = false,
+    /** 미리보기처럼 화면 일부에 그릴 때는 시스템 여백을 빼지 않는다 */
+    applyInsets: Boolean = true,
     display: @Composable () -> Unit,
 ) {
+    if (com.aggro1025.jeopda.ui.theme.LocalFolderTheme.current == com.aggro1025.jeopda.ui.theme.FolderTheme.CLOUD_CAT) {
+        CloudCatPhone(title, soft, onKey, scene, applyInsets, display)
+        return
+    }
     val imeVisible = WindowInsets.isImeVisible
     Column(
         Modifier
             .fillMaxSize()
             .background(Lcd.body)
-            .safeDrawingPadding(),
+            .then(if (applyInsets) Modifier.safeDrawingPadding() else Modifier),
     ) {
         Box(
             Modifier
@@ -190,7 +198,7 @@ private fun Wallpaper() {
 
 /** 실제 폴더폰처럼 화면 맨 위의 얇은 상태 표시줄 (배터리 왼쪽, 시계 오른쪽) */
 @Composable
-private fun StatusBar() {
+internal fun StatusBar() {
     val battery = rememberBattery()
     val now = rememberNow()
     Row(

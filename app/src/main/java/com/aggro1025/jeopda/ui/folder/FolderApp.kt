@@ -125,7 +125,7 @@ fun FolderApp(
                 }
             }
             BindKeys(router, onKey)
-            FolderPhone(null, SoftLabels("해제", "메뉴", "설정"), onKey) {
+            FolderPhone(null, SoftLabels("해제", "메뉴", "설정"), onKey, scene = true) {
                 HomeDisplay(
                     actions.freeRemaining(),
                     actions.isNotificationBlockOn() && actions.isAppGuardOn(),
@@ -249,10 +249,41 @@ internal fun BindKeys(router: KeyRouter, onKey: (FolderKey) -> Unit) {
 // ---------------- 홈 (대기 화면) ----------------
 
 @Composable
-private fun HomeDisplay(freeLeft: Int, notifBlockOn: Boolean, onFixNotif: () -> Unit) {
+internal fun HomeDisplay(freeLeft: Int, notifBlockOn: Boolean, onFixNotif: () -> Unit) {
     val freeAvailable = freeLeft > 0
     val now = rememberNow()
     val date = remember(now / 60_000) { Date(now) }
+
+    // 구름 고양이 테마: 글자는 오른쪽 위에 모으고 아래는 그림에 양보. 무료 해제 표시는 넣지 않음(그림과 안 어울림)
+    if (com.aggro1025.jeopda.ui.theme.LocalFolderTheme.current == com.aggro1025.jeopda.ui.theme.FolderTheme.CLOUD_CAT) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 2.dp), horizontalAlignment = Alignment.End) {
+            Text("폴더폰 모드", style = scrText(15.sp, weight = FontWeight.Bold))
+            Text(SimpleDateFormat("M월 d일 (E)", Locale.KOREA).format(date), style = scrText(12.sp, Scr.text.copy(alpha = 0.9f)))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    SimpleDateFormat("a", Locale.KOREA).format(date),
+                    style = scrText(15.sp),
+                    modifier = Modifier.padding(bottom = 10.dp, end = 6.dp),
+                )
+                Text(SimpleDateFormat("h:mm", Locale.KOREA).format(date), style = scrText(52.sp, weight = FontWeight.Light))
+            }
+            Spacer(Modifier.weight(1f))
+            if (!notifBlockOn) {
+                Text(
+                    "알림·앱 차단이 꺼져 있어요 · 눌러서 켜기",
+                    style = scrText(12.sp, Scr.warn),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0x993A2E4D))
+                        .clickable(onClick = onFixNotif)
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+        return
+    }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 6.dp)) {
         // 실제 폴더폰의 "통신사 이름 + 날짜" 자리

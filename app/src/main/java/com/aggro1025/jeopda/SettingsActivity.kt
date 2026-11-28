@@ -65,7 +65,11 @@ import com.aggro1025.jeopda.data.AppPrefs
 import com.aggro1025.jeopda.session.NotificationBlocker
 import com.aggro1025.jeopda.session.SmartSession
 import com.aggro1025.jeopda.ui.JeopdaTheme
+import com.aggro1025.jeopda.billing.RefillBilling
 import com.aggro1025.jeopda.ui.settings.HistoryScreen
+import com.aggro1025.jeopda.ui.settings.ThemeItem
+import com.aggro1025.jeopda.ui.settings.ThemeScreen
+import com.aggro1025.jeopda.ui.theme.FolderTheme
 import com.aggro1025.jeopda.ui.settings.NotifApp
 import com.aggro1025.jeopda.ui.settings.SettingsCallbacks
 import com.aggro1025.jeopda.ui.settings.SettingsDesign
@@ -132,6 +136,9 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
     var showLicenses by remember { mutableStateOf(false) }
     var showHomeChoice by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
+    var showThemes by remember { mutableStateOf(false) }
+    var buying by remember { mutableStateOf(false) }
+    var prices by remember { mutableStateOf(mapOf<String, String>()) }
     // 0: 권한, 1: 앱 설정
     var page by rememberSaveable { mutableIntStateOf(0) }
 
@@ -191,12 +198,70 @@ private fun SettingsScreen(onStartFolder: () -> Unit, onReturn: () -> Unit) {
             showHistory = true
         }
 
+        override fun onTheme() {
+            showThemes = true
+        }
+
         override fun onToggleSmartHomeFresh() {
             prefs.smartHomeFresh = !prefs.smartHomeFresh
             tick++
         }
     }
 
+    if (showThemes) {
+        BackHandler { showThemes = false }
+        LaunchedEffect(Unit) {
+            // 가진 테마를 플레이 기록과 맞추고, 스토어 가격을 읽어 온다
+            RefillBilling.restorePending(context, onOwnedChanged = { tick++ })
+            FolderTheme.entries.mapNotNull { it.productId }.forEach { id ->
+                RefillBilling.price(context, id) { p -> if (p != null) prices = prices + (id to p) }
+            }
+        }
+        val current = remember(tick) { FolderTheme.current(prefs) }
+        val items = remember(tick, prices) {
+            FolderTheme.entries.map { th ->
+                ThemeItem(th, FolderTheme.owned(prefs, th), th == current, th.productId?.let { prices[it] })
+            }
+        }
+        ThemeScreen(
+            items = items,
+            busy = buying,
+            onBack = { showThemes = false },
+            onApply = { th ->
+                prefs.themeId = th.id
+                tick++
+                Toast.makeText(context, "'${th.label}' 테마로 바꿨어요", Toast.LENGTH_SHORT).show()
+            },
+            onBuy = { th ->
+                val activity = context as? android.app.Activity ?: return@ThemeScreen
+                val id = th.productId ?: return@ThemeScreen
+                buying = true
+                RefillBilling.buy(activity, id) { result ->
+                    buying = false
+                    val msg = when (result) {
+                        RefillBilling.Result.THEME_OWNED -> {
+                            prefs.themeId = th.id
+                            "'${th.label}' 테마를 샀어요. 바로 적용했어요"
+                        }
+                        RefillBilling.Result.PENDING -> "결제가 처리되는 중이에요. 끝나면 테마를 쓸 수 있어요"
+                        RefillBilling.Result.UNAVAILABLE -> "지금은 결제를 할 수 없어요. 플레이스토어에서 받은 접다에서만 결제돼요"
+                        RefillBilling.Result.ERROR -> "결제를 마치지 못했어요. 다시 시도해 주세요"
+                        RefillBilling.Result.CANCELLED, RefillBilling.Result.REFILLED -> null
+                    }
+                    tick++
+                    msg?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+                }
+            },
+            onRestore = {
+                RefillBilling.restorePending(context, onOwnedChanged = { tick++ }, done = {
+                    tick++
+                    val n = prefs.ownedProducts.size
+                    Toast.makeText(context, if (n > 0) "산 테마 ${n}개를 확인했어요" else "이 구글 계정으로 산 테마가 없어요", Toast.LENGTH_SHORT).show()
+                })
+            },
+        )
+        return
+    }
     if (showHistory) {
         BackHandler { showHistory = false }
         HistoryScreen(prefs.reasons(), System.currentTimeMillis(), onBack = { showHistory = false })
@@ -319,6 +384,7 @@ private fun buildUi(context: Context, prefs: AppPrefs): SettingsUi {
         editable = !setupDone || smart,
         smartHomeLabel = homeLabel,
         smartHomeFresh = prefs.smartHomeFresh,
+        themeLabel = FolderTheme.current(prefs).label,
     )
 }
 

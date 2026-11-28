@@ -149,6 +149,16 @@ class AppPrefs(context: Context) {
         sp.edit().putString(KEY_REASONS, arr.toString()).apply()
     }
 
+    /** 폴더폰 디자인 테마 (FolderTheme.id). 유료 테마는 산 경우에만 적용된다 */
+    var themeId: String
+        get() = sp.getString(KEY_THEME, "classic") ?: "classic"
+        set(v) = sp.edit().putString(KEY_THEME, v).apply()
+
+    /** 구글 플레이에서 확인한, 계속 쓰는 유료 상품(테마) ID. 앱을 열 때마다 플레이 기록으로 다시 맞춘다 */
+    var ownedProducts: Set<String>
+        get() = sp.getStringSet(KEY_OWNED, emptySet()).orEmpty().toSet()
+        set(v) { sp.edit().putStringSet(KEY_OWNED, v).commit() }
+
     /** endedAt: 실제로 폴더폰으로 돌아온 시각 (없으면 아직 사용 중) */
     data class ReasonEntry(val at: Long, val minutes: Int, val method: String, val reason: String, val endedAt: Long? = null) {
         val plannedEnd: Long get() = at + minutes * 60_000L
@@ -174,5 +184,7 @@ class AppPrefs(context: Context) {
         private const val KEY_SMART_HOME = "smart_home_component"
         private const val KEY_SLOT_PREFIX = "slot_"
         private const val KEY_REASONS = "reasons"
+        private const val KEY_THEME = "theme_id"
+        private const val KEY_OWNED = "owned_products"
     }
 }

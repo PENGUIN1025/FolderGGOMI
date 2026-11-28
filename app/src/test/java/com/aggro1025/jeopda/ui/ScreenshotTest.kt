@@ -46,6 +46,29 @@ class ScreenshotTest {
     }
 
     @Test fun home() = shoot("1_home", Screen.Home)
+
+    // 유료 테마: 구름 고양이
+    private fun shootCat(name: String, screen: Screen) = shootContent(name) {
+        androidx.compose.runtime.CompositionLocalProvider(
+            com.aggro1025.jeopda.ui.theme.LocalFolderTheme provides com.aggro1025.jeopda.ui.theme.FolderTheme.CLOUD_CAT,
+        ) { PreviewScreen(screen) }
+    }
+    @Test fun catHome() = shootCat("20_cat_home", Screen.Home)
+    @Test fun themeScreen() = shootContent("25_theme_screen") {
+        val T = com.aggro1025.jeopda.ui.theme.FolderTheme.entries
+        com.aggro1025.jeopda.ui.settings.ThemeScreen(
+            items = listOf(
+                com.aggro1025.jeopda.ui.settings.ThemeItem(T[0], owned = true, applied = false, price = null),
+                com.aggro1025.jeopda.ui.settings.ThemeItem(T[1], owned = false, applied = false, price = "₩4,900"),
+            ).let { l -> l.map { it } },
+            busy = false, onBack = {}, onApply = {}, onBuy = {}, onRestore = {},
+        )
+    }
+    @Test fun catMenu() = shootCat("21_cat_menu", Screen.Menu(selected = 6))
+    @Test fun catUnlockMethod() = shootCat("22_cat_unlock_method", Screen.UnlockMethod())
+    @Test fun catDialer() = shootCat("23_cat_dialer", Screen.Dialer("01012345678"))
+    @Test @Config(sdk = [35], qualifiers = "w360dp-h640dp-xxhdpi")
+    fun catHomeSmall() = shootCat("24_cat_home_small", Screen.Home)
     @Test fun menu() = shoot("2_menu", Screen.Menu(selected = 6))
     @Test fun unlockMethod() = shoot("3_unlock_method", Screen.UnlockMethod())
     @Test fun unlockInput() = shoot("4_unlock_input", Screen.UnlockInput(UnlockMethod.FREE))

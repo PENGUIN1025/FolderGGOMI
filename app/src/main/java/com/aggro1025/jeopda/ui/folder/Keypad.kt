@@ -319,11 +319,12 @@ private fun keyText(size: androidx.compose.ui.unit.TextUnit, color: Color, weigh
 // ---------------- 공통: 누르는 영역 ----------------
 
 @Composable
-private fun KeyArea(
+internal fun KeyArea(
     key: FolderKey,
     onKey: (FolderKey) -> Unit,
     modifier: Modifier = Modifier,
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(14.dp),
+    pressedColor: Color = Kp.pressed,
     content: @Composable BoxScope.(pressed: Boolean) -> Unit,
 ) {
     val view = LocalView.current
@@ -333,7 +334,7 @@ private fun KeyArea(
         modifier
             .fillMaxSize()
             .clip(shape)
-            .background(if (pressed) Kp.pressed else Color.Transparent)
+            .background(if (pressed) pressedColor else Color.Transparent)
             .clickable(interactionSource = source, indication = null) {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 onKey(key)

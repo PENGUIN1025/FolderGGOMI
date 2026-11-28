@@ -82,6 +82,8 @@ class MainActivity : ComponentActivity() {
     private var notifBlockOn by mutableStateOf(true)
     private var appGuardOn by mutableStateOf(true)
     private var freeTick by mutableStateOf(0)
+    /** 폴더폰 디자인 테마 (설정에서 바꾸면 돌아올 때 다시 읽음) */
+    private var theme by mutableStateOf(com.aggro1025.jeopda.ui.theme.FolderTheme.CLASSIC)
     private val relayTimes = ArrayDeque<Long>()
 
     /** 전화 걸기 권한을 묻는 동안 걸려던 번호 */
@@ -126,15 +128,19 @@ class MainActivity : ComponentActivity() {
             JeopdaTheme {
                 LaunchedEffect(mode) { applySystemBars(mode == Mode.FOLDER) }
                 when (mode) {
-                    Mode.FOLDER -> FolderApp(
-                        screen = screen,
-                        onScreen = { screen = it },
-                        menu = menu,
-                        actions = actions,
-                        router = router,
-                        devUnlock = BuildConfig.DEBUG,
-                        contacts = contacts,
-                    )
+                    Mode.FOLDER -> androidx.compose.runtime.CompositionLocalProvider(
+                        com.aggro1025.jeopda.ui.theme.LocalFolderTheme provides theme,
+                    ) {
+                        FolderApp(
+                            screen = screen,
+                            onScreen = { screen = it },
+                            menu = menu,
+                            actions = actions,
+                            router = router,
+                            devUnlock = BuildConfig.DEBUG,
+                            contacts = contacts,
+                        )
+                    }
                     Mode.SETUP -> SetupPending(onOpen = { actions.openSettings() })
                     // 보통은 바로 원래 홈 화면이 덮어서 보이지 않음. 원래 홈 앱이 안 열리면 잠시 뒤 버튼이 나온다
                     Mode.RELAY -> RelayWaiting(
@@ -183,7 +189,12 @@ class MainActivity : ComponentActivity() {
             notifBlockOn = NotificationBlocker.isEnabled(this)
             appGuardOn = AppGuard.isReady(this)
             // 결제는 끝났는데 앱이 꺼져서 못 채운 경우 마저 처리
-            RefillBilling.restorePending(this) { freeTick++ }
+            theme = com.aggro1025.jeopda.ui.theme.FolderTheme.current(prefs)
+            RefillBilling.restorePending(
+                this,
+                onRefilled = { freeTick++ },
+                onOwnedChanged = { theme = com.aggro1025.jeopda.ui.theme.FolderTheme.current(prefs) },
+            )
             NotificationBlocker.sweepNow()
         }
     }
@@ -389,7 +400,7 @@ class MainActivity : ComponentActivity() {
                     RefillBilling.Result.PENDING -> "결제가 처리되는 중이에요. 끝나면 무료 해제가 초기화돼요"
                     RefillBilling.Result.UNAVAILABLE -> "지금은 결제를 할 수 없어요. 플레이스토어에서 받은 접다에서만 결제돼요"
                     RefillBilling.Result.ERROR -> "결제를 마치지 못했어요. 다시 시도해 주세요"
-                    RefillBilling.Result.CANCELLED -> null
+                    RefillBilling.Result.CANCELLED, RefillBilling.Result.THEME_OWNED -> null
                 }
                 if (result == RefillBilling.Result.REFILLED) freeTick++
                 msg?.let { Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show() }
