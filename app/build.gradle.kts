@@ -12,7 +12,7 @@ android {
         applicationId = "com.aggro1025.jeopda"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
+        versionCode = 5
         versionName = "0.4.0"
 
         // AdMob 기본값: 구글 공식 테스트 ID ("Test Ad" 표시, 수익 없음). 디버그 빌드는 항상 이 값

@@ -7,6 +7,7 @@
 | 항목 | 결정 |
 |---|---|
 | 패키지명 | `com.aggro1025.jeopda` |
+| 버전 기록 | 버전 코드 1(0.1.0) → 2(0.2.0) → 3(0.2.1) → 4(사용됨) → 5(0.4.0) |
 | 최소 안드로이드 버전 | minSdk 26 (Android 8.0), targetSdk 36 (Google Play 요구사항) |
 | 배포 | Play Console 내부 테스트 (docs/play-console.md) |
 | 개인정보처리방침 | https://penguin1025.github.io/jeopda-privacy/ (공개 저장소 jeopda-privacy에 docs/privacy/index.html을 올려 GitHub Pages로 게시). 내용이 바뀌면 그 저장소의 index.html을 교체 |
