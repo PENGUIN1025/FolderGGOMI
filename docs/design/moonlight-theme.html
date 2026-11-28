@@ -529,11 +529,6 @@ function build() {
   R.date = sText(358, 85, 12, '', { 'text-anchor': 'end', opacity: 0.92 });
   R.clock = sText(358, 146, 52, '', { 'text-anchor': 'end', 'font-weight': 300, 'stroke-width': 3.5 });
   R.ampm = sText(300, 146, 15, '', { 'text-anchor': 'end', opacity: 0.92 });
-  // 무료 해제 칩
-  const chipD = 'M273,410L355,410Q361,410 361,416L361,424Q361,430 355,430L273,430Q267,430 267,424L267,416Q267,410 273,410Z';
-  mk('path', { d: chipD, fill: '#FFFFFF', opacity: 0.94 }, art);
-  ink(art, chipD, { closed: true, w: 0.75, step: 2 });
-  const chipT = mk('text', { x: 314, y: 423.8, 'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 600, fill: C.ink }, tx); chipT.textContent = '무료 해제 3회 남음';
   // 버튼부 글자
   const kText = (x, y, s, txt, o = {}) => { const t = mk('text', Object.assign({ x, y, 'font-size': s, fill: C.ink, 'text-anchor': 'middle' }, o), tx); t.textContent = txt; return t; };
   kText(70, 499, 14, '해제', { 'font-weight': 700 });
