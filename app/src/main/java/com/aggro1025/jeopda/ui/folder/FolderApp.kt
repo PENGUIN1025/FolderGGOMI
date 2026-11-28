@@ -209,7 +209,7 @@ fun FolderApp(
             }
         }
 
-        is Screen.UnlockInput -> UnlockInputScreen(screen.method, onScreen, actions, router)
+        is Screen.UnlockInput -> UnlockInputScreen(screen, onScreen, actions, router)
         is Screen.Dialer -> DialerScreen(screen.number, contacts, onScreen, actions, router)
         is Screen.Contacts -> ContactsScreen(screen, contacts, onScreen, actions, router)
         is Screen.UnlockWait -> UnlockWaitScreen(screen, onScreen, actions, router)
@@ -444,34 +444,35 @@ private fun ListRow(
 
 // ---------------- 시간·사유 입력 ----------------
 
+/**
+ * 해제 입력: 스크롤 없이 두 단계로 나눈다.
+ * 1단계 시간(시계) → [다음] → 2단계 사유 → [해제]
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun UnlockInputScreen(
-    method: UnlockMethod,
+    screen: Screen.UnlockInput,
     onScreen: (Screen) -> Unit,
     actions: FolderActions,
     router: KeyRouter,
 ) {
-    var minutes by rememberSaveable { mutableIntStateOf(30) }
-    var reason by rememberSaveable { mutableStateOf("") }
+    val method = screen.method
+    val minutes = screen.minutes
+    var reason by rememberSaveable(method) { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
     fun setMinutes(v: Int) {
-        minutes = v.coerceIn(UnlockRules.MIN_MINUTES, UnlockRules.MAX_MINUTES)
+        onScreen(screen.copy(minutes = v.coerceIn(UnlockRules.MIN_MINUTES, UnlockRules.MAX_MINUTES)))
         error = null
     }
 
     fun submit() {
         if (method == UnlockMethod.FREE && !actions.isFreeAvailable()) {
-            error = "오늘 무료 해제는 이미 썼어요"
-            return
-        }
-        if (!UnlockRules.isValidDuration(minutes)) {
-            error = "시간은 ${UnlockRules.MIN_MINUTES}분~${UnlockRules.MAX_MINUTES / 60}시간 사이로 정해요"
+            error = "오늘 무료 해제는 다 썼어요"
             return
         }
         when (val c = UnlockRules.checkReason(reason)) {
-            is ReasonCheck.TooShort -> error = "사유를 ${UnlockRules.MIN_REASON_CHARS}글자 이상 적어주세요 (지금 ${c.count}글자)"
+            is ReasonCheck.TooShort -> error = "사유를 ${UnlockRules.MIN_REASON_CHARS}글자 이상 적어 주세요 (지금 ${c.count}글자)"
             ReasonCheck.Repetitive -> error = "같은 글자만 반복할 수는 없어요"
             ReasonCheck.Ok ->
                 if (method == UnlockMethod.AD) {
@@ -482,43 +483,61 @@ private fun UnlockInputScreen(
         }
     }
 
-    val cancel = { onScreen(Screen.UnlockMethod()) }
+    val title = "스마트폰 모드 해제 · ${method.label}"
+
+    if (screen.step == 0) {
+        // ---- 1단계: 시간 ----
+        val next = { onScreen(screen.copy(step = 1)) }
+        val onKey: (FolderKey) -> Unit = { k ->
+            when (k) {
+                FolderKey.UP -> setMinutes(minutes + 60)
+                FolderKey.DOWN -> setMinutes(minutes - 60)
+                FolderKey.RIGHT -> setMinutes(minutes + UnlockRules.MINUTE_STEP)
+                FolderKey.LEFT -> setMinutes(minutes - UnlockRules.MINUTE_STEP)
+                FolderKey.SOFT_LEFT, FolderKey.OK -> next()
+                FolderKey.SOFT_RIGHT, FolderKey.END -> onScreen(Screen.UnlockMethod())
+                else -> Unit
+            }
+        }
+        BindKeys(router, onKey)
+        FolderPhone(title, SoftLabels("다음", "다음", "취소"), onKey) {
+            Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 6.dp)) {
+                Label("1/2 · 스마트폰 모드를 얼마 동안 쓸까요? (최대 ${UnlockRules.MAX_MINUTES / 60}시간)", Modifier.fillMaxWidth())
+                BoxWithConstraints(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    val size = minOf(maxWidth, maxHeight, 270.dp)
+                    DialPicker(minutes, onChange = { setMinutes(it) }, size = size)
+                }
+                Text(
+                    "바늘을 돌리면 5분 단위 · 가운데를 누르면 1분 단위",
+                    style = scrText(11.sp, Scr.faint),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                )
+            }
+        }
+        return
+    }
+
+    // ---- 2단계: 사유 ----
+    val back = { onScreen(screen.copy(step = 0)) }
     val onKey: (FolderKey) -> Unit = { k ->
         when (k) {
-            FolderKey.UP -> setMinutes(minutes + 60)
-            FolderKey.DOWN -> setMinutes(minutes - 60)
-            FolderKey.RIGHT -> setMinutes(minutes + UnlockRules.MINUTE_STEP)
-            FolderKey.LEFT -> setMinutes(minutes - UnlockRules.MINUTE_STEP)
             FolderKey.SOFT_LEFT, FolderKey.OK -> submit()
-            FolderKey.SOFT_RIGHT, FolderKey.END -> cancel()
+            FolderKey.SOFT_RIGHT, FolderKey.END -> back()
             else -> Unit
         }
     }
     BindKeys(router, onKey)
-
-    FolderPhone("스마트폰 모드 해제 · ${method.label}", SoftLabels("해제", "", "취소"), onKey) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-        ) {
-            Label("스마트폰 모드를 얼마 동안 쓸까요? (최대 ${UnlockRules.MAX_MINUTES / 60}시간)", Modifier.fillMaxWidth())
-            // 시계형: 바늘을 돌려 5분 단위로, 한 바퀴 = 12시간
-            Box(Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
-                DialPicker(minutes, onChange = { setMinutes(it) })
-            }
+    FolderPhone(title, SoftLabels("해제", "", "이전"), onKey) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 6.dp)) {
             Text(
-                "바늘을 돌리면 5분 단위 · 가운데를 누르면 1분 단위",
-                style = scrText(11.sp, Scr.faint),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                "${durationText(minutes)} · ${SimpleDateFormat("a h:mm", Locale.KOREA).format(Date(System.currentTimeMillis() + minutes * 60_000L))}까지",
+                style = scrText(14.sp, Scr.accent, FontWeight.Bold),
             )
-
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
             val count = UnlockRules.reasonCharCount(reason)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Label("왜 스마트폰이 필요한가요?", Modifier.weight(1f))
+                Label("2/2 · 왜 스마트폰이 필요한가요?", Modifier.weight(1f))
                 Text(
                     "$count/${UnlockRules.MIN_REASON_CHARS}",
                     style = scrText(13.sp, if (count >= UnlockRules.MIN_REASON_CHARS) Scr.accent else Scr.dim, FontWeight.Bold),
@@ -542,6 +561,7 @@ private fun UnlockInputScreen(
                     .border(1.dp, Scr.dim.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
                     .padding(10.dp),
                 minLines = 2,
+                maxLines = 3,
                 decorationBox = { inner ->
                     Box {
                         if (reason.isEmpty()) {
@@ -559,17 +579,15 @@ private fun UnlockInputScreen(
                     }
                 }
             }
-
             error?.let {
-                Text(it, style = scrText(13.sp, Scr.warn), modifier = Modifier.padding(top = 10.dp))
+                Text(it, style = scrText(13.sp, Scr.warn), modifier = Modifier.padding(top = 8.dp))
             }
-
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button("취소", Modifier.weight(1f), primary = false) { cancel() }
+            Spacer(Modifier.weight(1f))
+            // 키보드가 올라오면 아래 버튼부가 숨겨지므로 화면 안에도 버튼
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 4.dp)) {
+                Button("이전", Modifier.weight(1f), primary = false) { back() }
                 Button("해제하기", Modifier.weight(1f), primary = true) { submit() }
             }
-            Spacer(Modifier.height(6.dp))
         }
     }
 }

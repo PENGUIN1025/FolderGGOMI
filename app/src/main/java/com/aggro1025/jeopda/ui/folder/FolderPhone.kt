@@ -64,7 +64,12 @@ sealed interface Screen {
     data object Home : Screen
     data class Menu(val selected: Int = 1) : Screen
     data class UnlockMethod(val selected: Int = 0) : Screen
-    data class UnlockInput(val method: com.aggro1025.jeopda.session.UnlockMethod) : Screen
+    /** step 0: 시간(시계), step 1: 사유 */
+    data class UnlockInput(
+        val method: com.aggro1025.jeopda.session.UnlockMethod,
+        val minutes: Int = 30,
+        val step: Int = 0,
+    ) : Screen
     data class Dialer(val number: String = "") : Screen
     /** 1분 기다린 뒤 해제 (광고를 불러오지 못했을 때) */
     data class UnlockWait(val minutes: Int, val reason: String, val adFailed: Boolean = false) : Screen

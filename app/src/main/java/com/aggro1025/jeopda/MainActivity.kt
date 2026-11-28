@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
             override fun handleOnBackPressed() {
                 if (mode == Mode.FOLDER && screen != Screen.Home) {
                     screen = when (val sc = screen) {
-                        is Screen.UnlockInput -> Screen.UnlockMethod()
+                        is Screen.UnlockInput -> if (sc.step == 1) sc.copy(step = 0) else Screen.UnlockMethod()
                         is Screen.UnlockWait, is Screen.UnlockAd, is Screen.Blocked -> Screen.Home
                         is Screen.Contacts -> if (sc.keys.isNotEmpty()) Screen.Contacts(sc.keys.dropLast(1)) else Screen.Home
                         is Screen.Dialer -> if (sc.number.isNotEmpty()) Screen.Dialer(sc.number.dropLast(1)) else Screen.Home

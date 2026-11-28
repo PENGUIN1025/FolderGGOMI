@@ -49,6 +49,7 @@ class ScreenshotTest {
     @Test fun menu() = shoot("2_menu", Screen.Menu(selected = 6))
     @Test fun unlockMethod() = shoot("3_unlock_method", Screen.UnlockMethod())
     @Test fun unlockInput() = shoot("4_unlock_input", Screen.UnlockInput(UnlockMethod.FREE))
+    @Test fun unlockInputReason() = shoot("4c_unlock_reason", Screen.UnlockInput(UnlockMethod.FREE, minutes = 90, step = 1))
 
     // 폴더폰 화면 안의 전화·연락처
     @Test fun dialer() = shoot("5_dialer", Screen.Dialer("01012345678"))

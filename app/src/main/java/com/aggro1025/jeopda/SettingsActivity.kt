@@ -243,32 +243,32 @@ private fun buildUi(context: Context, prefs: AppPrefs): SettingsUi {
     val smart = SmartSession.isSmart(context)
     val isHome = Apps.isDefaultHome(context)
     val steps = buildList {
-        add(SetupStep(StepId.HOME, "기본 홈 앱", "접다를 홈 앱으로 지정하면 폴더폰 화면이 켜져요", isHome, required = true))
+        add(SetupStep(StepId.HOME, "기본 홈 앱", "홈 버튼을 누르면 폴더폰 화면이 떠요", isHome, required = true))
         add(
             SetupStep(
                 StepId.NOTIF_ACCESS, "알림 접근",
-                "폴더폰 모드에서 필요한 알림만 남겨요. 알림 내용은 저장하거나 보내지 않아요",
+                "고른 앱 알림만 남기고 나머지는 지워요",
                 NotificationBlocker.isEnabled(context), required = true,
             ),
         )
         add(
             SetupStep(
                 StepId.USAGE_ACCESS, "사용 기록 접근",
-                "폴더폰 모드에서 최근 앱 화면 등으로 다른 앱을 열면 막아요. 지금 맨 앞 앱만 확인하고 기록은 저장하지 않아요",
+                "다른 앱이 열리면 폴더폰으로 돌려보내요",
                 AppGuard.hasUsageAccess(context), required = true,
             ),
         )
         add(
             SetupStep(
                 StepId.OVERLAY, "다른 앱 위에 표시",
-                "막힌 앱 대신 폴더폰 화면을 띄우는 데 필요해요",
+                "막힌 앱 대신 폴더폰 화면을 띄워요",
                 AppGuard.canDrawOverlays(context), required = true,
             ),
         )
         if (Build.VERSION.SDK_INT >= 33) {
             add(
                 SetupStep(
-                    StepId.POST_NOTIF, "알림 표시", "스마트폰 모드 남은 시간과 종료 30분 전·10분 전에 알려요",
+                    StepId.POST_NOTIF, "알림 표시", "남은 시간, 종료 30분·10분 전 알림",
                     granted(context, Manifest.permission.POST_NOTIFICATIONS), required = false,
                 ),
             )
@@ -276,20 +276,20 @@ private fun buildUi(context: Context, prefs: AppPrefs): SettingsUi {
         if (Build.VERSION.SDK_INT >= 31) {
             add(
                 SetupStep(
-                    StepId.EXACT_ALARM, "알람 및 리마인더", "종료 전 알림을 정확한 시각에 보내요",
+                    StepId.EXACT_ALARM, "알람 및 리마인더", "종료 전 알림을 정확한 시각에",
                     SmartSession.canScheduleExact(context), required = false,
                 ),
             )
         }
         add(
             SetupStep(
-                StepId.CONTACTS, "연락처", "폴더폰 화면에 연락처를 보여줘요. 기기 밖으로 보내지 않아요",
+                StepId.CONTACTS, "연락처", "폴더폰 화면에 연락처 보여주기",
                 granted(context, Manifest.permission.READ_CONTACTS), required = false,
             ),
         )
         add(
             SetupStep(
-                StepId.CALL, "전화 걸기", "번호를 누르면 바로 전화를 걸어요",
+                StepId.CALL, "전화 걸기", "번호를 누르면 바로 걸기",
                 granted(context, Manifest.permission.CALL_PHONE), required = false,
             ),
         )

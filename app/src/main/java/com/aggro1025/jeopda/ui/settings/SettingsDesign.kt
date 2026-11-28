@@ -129,24 +129,24 @@ fun SettingsDesign(
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             // 머리말 (고정)
             Column(
-                Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
-                        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(androidx.compose.ui.graphics.Color.White),
+                        Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(androidx.compose.ui.graphics.Color.White),
                         contentAlignment = Alignment.Center,
                     ) {
                         Image(
                             painterResource(R.drawable.ic_launcher_foreground),
                             null,
-                            Modifier.size(44.dp).graphicsLayer(scaleX = 1.35f, scaleY = 1.35f),
+                            Modifier.size(38.dp).graphicsLayer(scaleX = 1.35f, scaleY = 1.35f),
                         )
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text("접다 설정", style = t(22.sp, weight = FontWeight.Bold))
-                        Text("버전 ${ui.version} · ${ui.modeText}", style = t(13.sp, Scr.dim))
+                        Text("접다 설정", style = t(19.sp, weight = FontWeight.Bold))
+                        Text("버전 ${ui.version} · ${ui.modeText}", style = t(12.sp, Scr.dim))
                     }
                 }
                 if (ui.homeLost) {
@@ -187,16 +187,15 @@ fun SettingsDesign(
                 Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 18.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (page == 0) PermissionPage(ui, cb) else AppSettingsPage(ui, cb)
-                Spacer(Modifier.height(4.dp))
             }
 
             // 처음 설정 때의 다음·이전 버튼 (고정)
             if (!ui.setupDone) {
-                Column(Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     if (page == 0) {
                         PrimaryButton(
                             if (requiredDone) "다음: 앱 설정" else "필수 권한을 먼저 켜 주세요",
@@ -261,26 +260,21 @@ private fun Tabs(page: Int, onPage: (Int) -> Unit) {
 
 @Composable
 private fun PermissionPage(ui: SettingsUi, cb: SettingsCallbacks) {
-    // 안심 문구
+    // 안심 문구 (짧게)
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(Color(0x335AB0FF))
-            .border(1.dp, Color(0x665AB0FF), RoundedCornerShape(14.dp))
-            .padding(14.dp),
-        verticalAlignment = Alignment.Top,
+            .border(1.dp, Color(0x665AB0FF), RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.Lock, null, tint = Scr.accent, modifier = Modifier.size(20.dp))
+        Icon(Icons.Filled.Lock, null, tint = Scr.accent, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
         Column {
-            Text("연락처·알림·사용 기록은 폰 밖으로 나가지 않아요", style = t(15.sp, weight = FontWeight.Bold))
-            Spacer(Modifier.height(2.dp))
-            Text(
-                "접다가 요청하는 권한은 이 폰을 폴더폰처럼 쓰기 위한 것뿐이에요. " +
-                    "연락처, 앱 목록, 알림, 사용 기록, 해제 사유는 폰 안에서만 쓰고 저장하거나 보내지 않아요.",
-                style = t(13.sp, Scr.text.copy(alpha = 0.9f)),
-            )
+            Text("연락처·알림·사용 기록은 폰 밖으로 나가지 않아요", style = t(13.sp, weight = FontWeight.Bold))
+            Text("폴더폰처럼 쓰는 데만 쓰고, 저장하거나 보내지 않아요", style = t(12.sp, Scr.text.copy(alpha = 0.85f)))
         }
     }
     val doneCount = ui.steps.count { it.done }
@@ -297,37 +291,38 @@ private fun PermissionPage(ui: SettingsUi, cb: SettingsCallbacks) {
 private fun AppSettingsPage(ui: SettingsUi, cb: SettingsCallbacks) {
     Section("폴더폰 메뉴")
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         ui.slots.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 row.forEach { item ->
                     SlotCell(item, ui.editable, Modifier.weight(1f), onClick = { cb.onSlot(item.slot) }, onLong = { cb.onClearSlot(item.slot) })
                 }
             }
         }
         Text(
-            if (ui.editable) "6~9번을 눌러 앱을 고르고, 길게 눌러 비워요. 게임·소셜·영상 앱과 브라우저는 넣을 수 없어요"
-            else "폴더폰 모드에서는 보기만 할 수 있어요. 바꾸려면 먼저 해제하세요",
-            style = t(12.sp, Scr.dim),
+            if (ui.editable) "6~9번 누르면 고르기, 길게 누르면 비우기 (게임·소셜·영상·브라우저 제외)"
+            else "폴더폰 모드에서는 보기만 할 수 있어요",
+            style = t(11.sp, Scr.dim),
+            modifier = Modifier.padding(horizontal = 4.dp),
         )
     }
 
     Section("알림을 받을 앱 ${ui.allowedNotifApps.size}/3")
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text("전화, 문자, 알람, 재난문자는 항상 와요. 그 밖의 앱 알림은 폴더폰 모드에서 지워져요", style = t(13.sp, Scr.dim))
+        Text("전화·문자·알람·재난문자는 항상 와요", style = t(12.sp, Scr.dim))
         ui.allowedNotifApps.forEach { app ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("· ${app.label}", style = t(15.sp), modifier = Modifier.weight(1f))
+                Text("· ${app.label}", style = t(14.sp), modifier = Modifier.weight(1f))
                 if (ui.editable) {
                     Text(
                         "빼기",
                         style = t(13.sp, Scr.dim),
-                        modifier = Modifier.clickable { cb.onRemoveNotifApp(app.pkg) }.padding(6.dp),
+                        modifier = Modifier.clickable { cb.onRemoveNotifApp(app.pkg) }.padding(horizontal = 6.dp, vertical = 3.dp),
                     )
                 }
             }
@@ -335,8 +330,8 @@ private fun AppSettingsPage(ui: SettingsUi, cb: SettingsCallbacks) {
         if (ui.allowedNotifApps.size < 3 && ui.editable) {
             Text(
                 "+ 앱 추가",
-                style = t(15.sp, Scr.accent, FontWeight.Bold),
-                modifier = Modifier.clickable(onClick = cb::onAddNotifApp).padding(vertical = 4.dp),
+                style = t(14.sp, Scr.accent, FontWeight.Bold),
+                modifier = Modifier.clickable(onClick = cb::onAddNotifApp).padding(vertical = 3.dp),
             )
         }
         if (!ui.editable) Text("폴더폰 모드에서는 보기만 할 수 있어요", style = t(12.sp, Scr.dim))
@@ -346,10 +341,10 @@ private fun AppSettingsPage(ui: SettingsUi, cb: SettingsCallbacks) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)) {
         LinkRow("해제 기록", "사유·사용 시간", cb::onHistory)
         Divider()
-        LinkRow("스마트폰 모드에서 쓸 홈 화면", ui.smartHomeLabel, cb::onSmartHome)
+        LinkRow("스마트폰 모드 홈 화면", ui.smartHomeLabel, cb::onSmartHome)
         Divider()
         LinkRow(
-            "홈 버튼 누르면 원래 홈 첫 화면으로",
+            "홈 버튼 → 원래 홈 첫 화면",
             if (ui.smartHomeFresh) "켜짐" else "꺼짐",
             cb::onToggleSmartHomeFresh,
         )
@@ -368,28 +363,28 @@ private fun SecondaryButton(text: String, onClick: () -> Unit) {
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0x33FFFFFF))
             .clickable(onClick = onClick)
-            .padding(vertical = 15.dp),
+            .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, style = t(16.sp, weight = FontWeight.Bold)) }
 }
 
 @Composable
 private fun Section(text: String) =
-    Text(text, style = t(14.sp, Scr.accent, FontWeight.Bold), modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+    Text(text, style = t(13.sp, Scr.accent, FontWeight.Bold), modifier = Modifier.padding(start = 4.dp, top = 2.dp))
 
 @Composable
-private fun Divider() = Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp).height(1.dp).background(CardLine))
+private fun Divider() = Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).height(1.dp).background(CardLine))
 
 @Composable
 private fun StepRow(n: Int, s: SetupStep, onClick: () -> Unit) {
     val row = Modifier.fillMaxWidth()
     Row(
-        (if (s.done) row else row.clickable(onClick = onClick)).padding(14.dp),
+        (if (s.done) row else row.clickable(onClick = onClick)).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
-                .size(26.dp)
+                .size(24.dp)
                 .clip(CircleShape)
                 .background(if (s.done) Color(0xFF2E9E5B) else Color(0x33FFFFFF)),
             contentAlignment = Alignment.Center,
@@ -403,11 +398,11 @@ private fun StepRow(n: Int, s: SetupStep, onClick: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(s.title, style = t(15.sp, weight = FontWeight.Bold))
+                Text(s.title, style = t(14.sp, weight = FontWeight.Bold))
                 Spacer(Modifier.width(6.dp))
                 Text(if (s.required) "필수" else "선택", style = t(11.sp, if (s.required) Scr.warn else Scr.dim))
             }
-            Text(s.desc, style = t(12.sp, Scr.dim))
+            Text(s.desc, style = t(12.sp, Scr.dim), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(8.dp))
         if (s.done) {
@@ -419,7 +414,7 @@ private fun StepRow(n: Int, s: SetupStep, onClick: () -> Unit) {
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
                     .background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep)))
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                    .padding(horizontal = 12.dp, vertical = 5.dp),
             )
         }
     }
@@ -434,23 +429,23 @@ private fun SlotCell(item: SlotItem, editable: Boolean, modifier: Modifier, onCl
         .background(if (userSlot && editable) Color(0x1A5AB0FF) else Color.Transparent)
     Column(
         (if (userSlot && editable) base.combinedClickable(onClick = onClick, onLongClick = onLong) else base)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(30.dp), contentAlignment = Alignment.Center) {
             when {
-                item.icon != null -> Image(item.icon, null, Modifier.size(36.dp))
+                item.icon != null -> Image(item.icon, null, Modifier.size(30.dp))
                 item.empty -> Box(
-                    Modifier.size(36.dp).border(1.5.dp, Scr.faint, RoundedCornerShape(10.dp)),
+                    Modifier.size(30.dp).border(1.5.dp, Scr.faint, RoundedCornerShape(10.dp)),
                     contentAlignment = Alignment.Center,
                 ) { Text("+", style = t(18.sp, Scr.faint)) }
                 else -> Box(
-                    Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x40FFFFFF)),
+                    Modifier.size(30.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x40FFFFFF)),
                     contentAlignment = Alignment.Center,
                 ) { Text(item.label.take(1), style = t(15.sp, weight = FontWeight.Bold)) }
             }
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         Text(
             "${item.slot} ${item.label}",
             style = t(12.sp, if (item.empty) Scr.faint else Scr.text),
@@ -463,12 +458,12 @@ private fun SlotCell(item: SlotItem, editable: Boolean, modifier: Modifier, onCl
 @Composable
 private fun LinkRow(title: String, value: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(14.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = t(15.sp), modifier = Modifier.weight(1f))
+        Text(title, style = t(14.sp), modifier = Modifier.weight(1f))
         if (value.isNotEmpty()) Text(value, style = t(13.sp, Scr.dim))
-        Text("  ›", style = t(18.sp, Scr.dim))
+        Text("  ›", style = t(16.sp, Scr.dim))
     }
 }
 
@@ -481,7 +476,7 @@ private fun PrimaryButton(text: String, enabled: Boolean, onClick: () -> Unit) {
                 if (enabled) Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))
                 else Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x33FFFFFF))),
             )
-            .padding(vertical = 15.dp),
+            .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, style = t(16.sp, if (enabled) Scr.text else Scr.dim, FontWeight.Bold)) }
 }
@@ -511,14 +506,14 @@ internal val previewSettingsFirstRun = SettingsUi(
     smartEndText = null,
     homeLost = false,
     steps = listOf(
-        SetupStep(StepId.HOME, "기본 홈 앱", "접다를 홈 앱으로 지정하면 폴더폰 화면이 켜져요", done = true, required = true),
-        SetupStep(StepId.NOTIF_ACCESS, "알림 접근", "폴더폰 모드에서 필요한 알림만 남겨요. 알림 내용은 저장하거나 보내지 않아요", done = false, required = true),
-        SetupStep(StepId.USAGE_ACCESS, "사용 기록 접근", "폴더폰 모드에서 최근 앱 화면 등으로 다른 앱을 열면 막아요. 지금 맨 앞 앱만 확인하고 기록은 저장하지 않아요", done = false, required = true),
-        SetupStep(StepId.OVERLAY, "다른 앱 위에 표시", "막힌 앱 대신 폴더폰 화면을 띄우는 데 필요해요", done = false, required = true),
-        SetupStep(StepId.POST_NOTIF, "알림 표시", "스마트폰 모드 남은 시간과 종료 30분 전·10분 전에 알려요", done = true, required = false),
-        SetupStep(StepId.EXACT_ALARM, "알람 및 리마인더", "종료 전 알림을 정확한 시각에 보내요", done = false, required = false),
-        SetupStep(StepId.CONTACTS, "연락처", "폴더폰 화면에 연락처를 보여줘요", done = false, required = false),
-        SetupStep(StepId.CALL, "전화 걸기", "번호를 누르면 바로 전화를 걸어요", done = false, required = false),
+        SetupStep(StepId.HOME, "기본 홈 앱", "홈 버튼을 누르면 폴더폰 화면이 떠요", done = true, required = true),
+        SetupStep(StepId.NOTIF_ACCESS, "알림 접근", "고른 앱 알림만 남기고 나머지는 지워요", done = false, required = true),
+        SetupStep(StepId.USAGE_ACCESS, "사용 기록 접근", "다른 앱이 열리면 폴더폰으로 돌려보내요", done = false, required = true),
+        SetupStep(StepId.OVERLAY, "다른 앱 위에 표시", "막힌 앱 대신 폴더폰 화면을 띄워요", done = false, required = true),
+        SetupStep(StepId.POST_NOTIF, "알림 표시", "남은 시간, 종료 30분·10분 전 알림", done = true, required = false),
+        SetupStep(StepId.EXACT_ALARM, "알람 및 리마인더", "종료 전 알림을 정확한 시각에", done = false, required = false),
+        SetupStep(StepId.CONTACTS, "연락처", "폴더폰 화면에 연락처 보여주기", done = false, required = false),
+        SetupStep(StepId.CALL, "전화 걸기", "번호를 누르면 바로 걸기", done = false, required = false),
     ),
     slots = listOf(
         SlotItem(1, "전화"), SlotItem(2, "문자"), SlotItem(3, "연락처"),
