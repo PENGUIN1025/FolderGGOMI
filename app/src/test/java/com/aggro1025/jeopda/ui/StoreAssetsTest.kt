@@ -91,7 +91,7 @@ class StoreAssetsTest {
     // ---- 앱 아이콘 512x512 (구글 플레이가 모서리를 둥글게 잘라 보여줌) ----
     @Test @Config(sdk = [35], qualifiers = "w512dp-h512dp-mdpi")
     fun icon() = save("icon_512") {
-        Box(Modifier.fillMaxSize().background(Lcd.body), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.White), contentAlignment = Alignment.Center) {
             Image(
                 painterResource(R.drawable.ic_launcher_foreground),
                 contentDescription = null,
@@ -111,7 +111,7 @@ class StoreAssetsTest {
             Row(Modifier.fillMaxSize().padding(start = 64.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.width(520.dp)) {
                     Box(
-                        Modifier.size(96.dp).clip(RoundedCornerShape(24.dp)).background(Lcd.body),
+                        Modifier.size(96.dp).clip(RoundedCornerShape(24.dp)).background(androidx.compose.ui.graphics.Color.White),
                         contentAlignment = Alignment.Center,
                     ) {
                         Image(

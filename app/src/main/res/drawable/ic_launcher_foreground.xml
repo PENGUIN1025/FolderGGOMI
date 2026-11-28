@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 접다 아이콘: 흰 바탕 위 남색 폴더폰 (108dp 캔버스, 가운데 66dp 안전 영역 안) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -6,18 +7,18 @@
     android:viewportHeight="108">
     <!-- 본체 -->
     <path
-        android:fillColor="#FFB6F2C4"
-        android:pathData="M40,26h28a5,5 0,0 1,5 5v46a5,5 0,0 1,-5 5h-28a5,5 0,0 1,-5 -5v-46a5,5 0,0 1,5 -5z" />
+        android:fillColor="#FF1C2E52"
+        android:pathData="M44,25h20a7,7 0,0 1,7 7v44a7,7 0,0 1,-7 7h-20a7,7 0,0 1,-7 -7v-44a7,7 0,0 1,7 -7z" />
     <!-- 화면 -->
     <path
-        android:fillColor="#FF15171A"
-        android:pathData="M41,31h26v20h-26z" />
+        android:fillColor="#FF5AB0FF"
+        android:pathData="M45,31h18a2,2 0,0 1,2 2v14a2,2 0,0 1,-2 2h-18a2,2 0,0 1,-2 -2v-14a2,2 0,0 1,2 -2z" />
     <!-- 접히는 선 -->
     <path
-        android:fillColor="#FF15171A"
-        android:pathData="M35,54.5h38v1.5h-38z" />
-    <!-- 키패드 -->
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M37,53.2h34v1.6h-34z" />
+    <!-- 키패드 3x3 -->
     <path
-        android:fillColor="#FF15171A"
-        android:pathData="M42,61h6v4h-6zM51,61h6v4h-6zM60,61h6v4h-6zM42,68h6v4h-6zM51,68h6v4h-6zM60,68h6v4h-6zM42,75h6v3h-6zM51,75h6v3h-6zM60,75h6v3h-6z" />
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M44,60h5v3.4h-5zM51.5,60h5v3.4h-5zM59,60h5v3.4h-5zM44,66.3h5v3.4h-5zM51.5,66.3h5v3.4h-5zM59,66.3h5v3.4h-5zM44,72.6h5v3.4h-5zM51.5,72.6h5v3.4h-5zM59,72.6h5v3.4h-5z" />
 </vector>

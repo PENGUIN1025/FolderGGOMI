@@ -134,7 +134,7 @@ fun SettingsDesign(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
-                        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Lcd.body),
+                        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(androidx.compose.ui.graphics.Color.White),
                         contentAlignment = Alignment.Center,
                     ) {
                         Image(
