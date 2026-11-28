@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aggro1025.jeopda.data.AppPrefs.ReasonEntry
 import com.aggro1025.jeopda.session.UnlockMethod
-import com.aggro1025.jeopda.ui.Scr
+import com.aggro1025.jeopda.ui.ScrFixed
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -46,18 +46,18 @@ fun HistoryScreen(entries: List<ReasonEntry>, now: Long, onBack: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Scr.wallTop, Scr.wallBottom))),
+            .background(Brush.verticalGradient(listOf(ScrFixed.wallTop, ScrFixed.wallBottom))),
     ) {
         Column(Modifier.safeDrawingPadding().padding(horizontal = 18.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "‹ 뒤로",
-                    style = t(15.sp, Scr.accent, FontWeight.Bold),
+                    style = t(15.sp, ScrFixed.accent, FontWeight.Bold),
                     modifier = Modifier.clickable(onClick = onBack).padding(vertical = 8.dp, horizontal = 4.dp),
                 )
             }
             Text("해제 기록", style = t(22.sp, weight = FontWeight.Bold))
-            Text("이 기록은 폰 안에만 있어요", style = t(13.sp, Scr.dim))
+            Text("이 기록은 폰 안에만 있어요", style = t(13.sp, ScrFixed.dim))
             Spacer(Modifier.height(14.dp))
 
             // 최근 7일 요약
@@ -77,7 +77,7 @@ fun HistoryScreen(entries: List<ReasonEntry>, now: Long, onBack: () -> Unit) {
 
             if (newestFirst.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("아직 해제한 적이 없어요", style = t(15.sp, Scr.dim))
+                    Text("아직 해제한 적이 없어요", style = t(15.sp, ScrFixed.dim))
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -106,18 +106,18 @@ private fun EntryCard(e: ReasonEntry, now: Long) {
                 style = t(14.sp, weight = FontWeight.Bold),
                 modifier = Modifier.weight(1f),
             )
-            Text(methodLabel(e.method), style = t(12.sp, Scr.dim))
+            Text(methodLabel(e.method), style = t(12.sp, ScrFixed.dim))
         }
         Text("“${e.reason}”", style = t(15.sp))
         Row {
-            Text("정한 시간 ${durationLabel(e.minutes)}", style = t(13.sp, Scr.dim))
+            Text("정한 시간 ${durationLabel(e.minutes)}", style = t(13.sp, ScrFixed.dim))
             Spacer(Modifier.width(10.dp))
             val used = when {
                 ongoing -> "지금 사용 중"
                 isEarly(e) -> "실제 ${minutesText(usedMs(e, now))} · 일찍 돌아옴"
                 else -> "끝까지 사용"
             }
-            Text(used, style = t(13.sp, if (isEarly(e)) Color(0xFF7CE38B) else Scr.dim, FontWeight.Bold))
+            Text(used, style = t(13.sp, if (isEarly(e)) Color(0xFF7CE38B) else ScrFixed.dim, FontWeight.Bold))
         }
     }
 }
@@ -126,11 +126,11 @@ private fun EntryCard(e: ReasonEntry, now: Long) {
 private fun Stat(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = t(18.sp, weight = FontWeight.Bold))
-        Text(label, style = t(12.sp, Scr.dim))
+        Text(label, style = t(12.sp, ScrFixed.dim))
     }
 }
 
-private fun t(size: TextUnit, color: Color = Scr.text, weight: FontWeight = FontWeight.Normal) =
+private fun t(size: TextUnit, color: Color = ScrFixed.text, weight: FontWeight = FontWeight.Normal) =
     TextStyle(fontSize = size, color = color, fontWeight = weight)
 
 /** 실제로 스마트폰 모드였던 시간 */

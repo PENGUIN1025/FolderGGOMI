@@ -86,6 +86,8 @@ data class SoftLabels(val left: String = "", val center: String = "", val right:
 private val TextShadow = Shadow(Color(0xB3000000), Offset(0f, 2f), 4f)
 
 /** 배경화면 위 글자 (그림자로 어느 배경에서도 읽히게) */
+@Composable
+@androidx.compose.runtime.ReadOnlyComposable
 fun scrText(size: TextUnit, color: Color = Scr.text, weight: FontWeight = FontWeight.Normal) =
     TextStyle(fontSize = size, color = color, fontWeight = weight, shadow = TextShadow)
 
@@ -147,10 +149,12 @@ fun FolderPhone(
 /** 어두운 남색 그라데이션 + 은은한 곡선 무늬 */
 @Composable
 private fun Wallpaper() {
+    val top = Scr.wallTop
+    val bottom = Scr.wallBottom
     Canvas(Modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
-        drawRect(Brush.verticalGradient(listOf(Scr.wallTop, Scr.wallBottom)))
+        drawRect(Brush.verticalGradient(listOf(top, bottom)))
         // 오른쪽 아래 큰 원호 (빛 번짐)
         drawCircle(
             brush = Brush.radialGradient(

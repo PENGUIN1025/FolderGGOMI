@@ -49,9 +49,7 @@ class ScreenshotTest {
 
     // 유료 테마: 구름 고양이
     private fun shootCat(name: String, screen: Screen) = shootContent(name) {
-        androidx.compose.runtime.CompositionLocalProvider(
-            com.aggro1025.jeopda.ui.theme.LocalFolderTheme provides com.aggro1025.jeopda.ui.theme.FolderTheme.CLOUD_CAT,
-        ) { PreviewScreen(screen) }
+        com.aggro1025.jeopda.ui.theme.ProvideFolderTheme(com.aggro1025.jeopda.ui.theme.FolderTheme.CLOUD_CAT) { PreviewScreen(screen) }
     }
     @Test fun catHome() = shootCat("20_cat_home", Screen.Home)
     @Test fun themeScreen() = shootContent("25_theme_screen") {
@@ -67,6 +65,12 @@ class ScreenshotTest {
     @Test fun catMenu() = shootCat("21_cat_menu", Screen.Menu(selected = 6))
     @Test fun catUnlockMethod() = shootCat("22_cat_unlock_method", Screen.UnlockMethod())
     @Test fun catDialer() = shootCat("23_cat_dialer", Screen.Dialer("01012345678"))
+    @Test fun catUnlockInput() = shootCat("26_cat_unlock_input", Screen.UnlockInput(com.aggro1025.jeopda.session.UnlockMethod.FREE))
+    @Test fun catUnlockReason() = shootCat("27_cat_unlock_reason", Screen.UnlockInput(com.aggro1025.jeopda.session.UnlockMethod.FREE, minutes = 90, step = 1))
+    @Test fun catUnlockWait() = shootCat("28_cat_unlock_wait", Screen.UnlockWait(30, "회사 메일 확인해야 해요", adFailed = true))
+    @Test fun catUnlockAd() = shootCat("29_cat_unlock_ad", Screen.UnlockAd(30, "회사 메일 확인해야 해요"))
+    @Test fun catContacts() = shootCat("30_cat_contacts", Screen.Contacts(selected = 2))
+    @Test fun catBlocked() = shootCat("31_cat_blocked", Screen.Blocked("인스타그램"))
     @Test @Config(sdk = [35], qualifiers = "w360dp-h640dp-xxhdpi")
     fun catHomeSmall() = shootCat("24_cat_home_small", Screen.Home)
     @Test fun menu() = shoot("2_menu", Screen.Menu(selected = 6))

@@ -27,3 +27,13 @@ enum class FolderTheme(val id: String, val label: String, val productId: String?
 }
 
 val LocalFolderTheme = staticCompositionLocalOf { FolderTheme.CLASSIC }
+
+/** 테마와 그 테마의 화면 색을 함께 적용 */
+@androidx.compose.runtime.Composable
+fun ProvideFolderTheme(theme: FolderTheme, content: @androidx.compose.runtime.Composable () -> Unit) {
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalFolderTheme provides theme,
+        com.aggro1025.jeopda.ui.LocalScr provides if (theme == FolderTheme.CLOUD_CAT) com.aggro1025.jeopda.ui.CloudCatScr else com.aggro1025.jeopda.ui.ClassicScr,
+        content = content,
+    )
+}

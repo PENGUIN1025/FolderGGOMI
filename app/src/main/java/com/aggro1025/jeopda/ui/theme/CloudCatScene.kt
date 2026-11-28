@@ -299,8 +299,8 @@ private fun DrawScope.drawCloudCatSky(art: CloudCatArt, st: CloudCatState, full:
     if (full) {
         drawRect(Brush.verticalGradient(0f to CC.skyTop, 0.45f to CC.skyMid, 0.75f to CC.skyLight, 1f to CC.skyLow, startY = y0, endY = y1))
     } else {
-        // 메뉴·해제 등 글자가 많은 화면: 흐린 글자도 읽히게 더 짙은 밤하늘
-        drawRect(Brush.verticalGradient(0f to Color(0xFF3F3388), 1f to Color(0xFF2B2463), startY = y0, endY = size.height))
+        // 메뉴·해제 등 글자가 많은 화면: 홈처럼 밝은 보랏빛 하늘 (흰 글자가 읽히는 데까지만 밝게)
+        drawRect(Brush.verticalGradient(0f to CC.skyTop, 1f to Color(0xFF8A7CD8), startY = y0, endY = size.height))
     }
 }
 
@@ -334,12 +334,20 @@ private fun DrawScope.drawCloudCat(art: CloudCatArt, st: CloudCatState, full: Bo
                 rotate(sin(st.t * 0.7f + sp.ph) * 8f * tw, Offset.Zero)
                 scale(k, k, Offset.Zero)
             }) {
-                val a = (0.75f + 0.25f * sin(st.t * sp.sp + sp.ph)) * (if (full) 1f else 0.7f)
+                // 글자 화면에서는 반짝이가 글자를 가리지 않게 옅게
+                val a = (0.75f + 0.25f * sin(st.t * sp.sp + sp.ph)) * (if (full) 1f else 0.3f)
                 drawPath(sp.fill, Color(0xFFFFF7D2), a)
                 sp.ink.draw(this, st.tick, alphaMul = a)
             }
         }
-        if (!full) return@withTransform
+        if (!full) {
+            art.miniPlanets.forEach { p ->
+                drawPath(p.fill, p.color)
+                clipPath(p.fill) { drawPath(p.hatch, p.hatchColor, 0.42f) }
+                p.inks.forEach { it.draw(this, st.tick) }
+            }
+            return@withTransform
+        }
 
         // 별똥별
         st.meteors.forEach { m ->

@@ -466,7 +466,7 @@ fun ThemePreview(theme: FolderTheme, width: Dp, modifier: Modifier = Modifier) {
                     transformOrigin = TransformOrigin(0f, 0f)
                 },
         ) {
-            CompositionLocalProvider(LocalFolderTheme provides theme) {
+            com.aggro1025.jeopda.ui.theme.ProvideFolderTheme(theme) {
                 FolderPhone(null, SoftLabels("해제", "메뉴", "설정"), onKey = {}, scene = true, applyInsets = false) {
                     HomeDisplay(3, notifBlockOn = true, onFixNotif = {})
                 }

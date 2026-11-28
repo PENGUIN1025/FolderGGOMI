@@ -106,6 +106,10 @@ class CloudCatArt {
     val tailInk: InkStroke
     val scarfInk: InkStroke
 
+    // ---------- 글자 화면용 작은 행성들 (가장자리에 걸치게) ----------
+    class MiniPlanet(val fill: Path, val color: Color, val hatch: Path, val hatchColor: Color, val inks: List<InkStroke>)
+    val miniPlanets = ArrayList<MiniPlanet>()
+
     // ---------- 효과용 ----------
     val starPath = pathOf(star4(1f))
     val heartPath = pathOf("M0,2.5C-7,-3 -4.5,-9 0,-5.5C4.5,-9 7,-3 0,2.5Z")
@@ -242,6 +246,26 @@ class CloudCatArt {
         // 꼬리·목도리 꼬리 (매 프레임 모양이 바뀜)
         tailInk = InkStroke(Pts(FloatArray(2), FloatArray(2)), w = 1f, rnd = rnd, noRetrace = true)
         scarfInk = InkStroke(Pts(FloatArray(2), FloatArray(2)), w = 0.85f, rnd = rnd, noRetrace = true)
+    }
+
+    init {
+        fun circle(cx: Float, cy: Float, r: Float) = "M${cx - r},${cy}A$r,$r 0 1 1 ${cx + r},${cy}A$r,$r 0 1 1 ${cx - r},${cy}Z"
+        fun planet(cx: Float, cy: Float, rr: Float, color: Color, hatchColor: Color, ring: Boolean) {
+            val d = circle(cx, cy, rr)
+            val h = Path()
+            repeat((rr * 1.2f).toInt()) {
+                val a = r(-0.4f, 2f); val q = r(rr * 0.2f, rr)
+                h.leaf(cx + cos(a) * q, cy + sin(a) * q, r(4f, 7f), -0.7f, r(0.45f, 0.8f))
+            }
+            val inks = ArrayList<InkStroke>()
+            if (ring) inks += ink(ellipsePts(cx, cy, rr * 1.65f, rr * 0.38f, -0.36f, PI.toFloat(), (2 * PI).toFloat()), 0.8f, alpha = 0.55f)
+            inks += ink(d, 1f, closed = true)
+            if (ring) inks += ink(ellipsePts(cx, cy, rr * 1.65f, rr * 0.38f, -0.36f, 0f, PI.toFloat()), 0.95f)
+            miniPlanets += MiniPlanet(pathOf(d), color, h, hatchColor, inks)
+        }
+        planet(358f, 150f, 16f, CC.planet, Color(0xFFC25E63), ring = true)
+        planet(26f, 300f, 12f, CC.moon, Color(0xFFD9A93A), ring = false)
+        planet(350f, 418f, 10f, Color(0xFF9CC9F2), Color(0xFF5E93C8), ring = true)
     }
 
     /** 모든 펜 선 (떨림을 미리 계산할 때) */

@@ -357,10 +357,11 @@ private fun MenuDisplay(menu: List<MenuEntry>, selected: Int, onTap: (Int) -> Un
 private fun MenuCell(entry: MenuEntry, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     val base = modifier.padding(3.dp).clip(shape)
+    val cat = isCatTheme()
     val framed = if (selected) {
         base
-            .background(Brush.verticalGradient(listOf(Color(0x665AB0FF), Color(0x332A6FD6))))
-            .border(2.dp, Scr.accent, shape)
+            .background(Brush.verticalGradient(listOf(Scr.accent.copy(alpha = 0.4f), Scr.accentDeep.copy(alpha = 0.2f))))
+            .then(if (cat) Modifier.inkFrame(true, 12.dp, strong = true, seed = entry.slot) else Modifier.border(2.dp, Scr.accent, shape))
     } else {
         base
     }
@@ -398,6 +399,10 @@ private fun MenuCell(entry: MenuEntry, selected: Boolean, modifier: Modifier, on
 /** 실제 앱 아이콘. 읽지 못하면(미리보기, 기본 앱을 못 찾은 경우) 색 사각형 + 기호 */
 @Composable
 private fun MenuIcon(entry: MenuEntry, size: Dp) {
+    if (isCatTheme()) {
+        CatMenuIcon(entry.slot, entry.icon, entry.empty, size, entry.label)
+        return
+    }
     when {
         entry.icon != null -> Image(entry.icon, contentDescription = null, modifier = Modifier.size(size))
         entry.empty -> Box(
@@ -449,7 +454,7 @@ private fun ListRow(
 ) {
     val shape = RoundedCornerShape(8.dp)
     val base = Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(shape)
-    val bar = if (selected) base.background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))) else base
+    val bar = if (selected) base.background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))).inkFrame(isCatTheme(), 8.dp, strong = true, seed = number) else base
     Row(
         bar
             .clickable(onClick = onClick)
@@ -589,7 +594,7 @@ private fun UnlockInputScreen(
                     .padding(vertical = 6.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(0x59000000))
-                    .border(1.dp, Scr.dim.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .then(if (isCatTheme()) Modifier.inkFrame(true, 8.dp, strong = false) else Modifier.border(1.dp, Scr.dim.copy(alpha = 0.6f), RoundedCornerShape(8.dp)))
                     .padding(10.dp),
                 minLines = 2,
                 maxLines = 3,
@@ -771,6 +776,7 @@ private fun Chip(text: String, selected: Boolean = false, onClick: () -> Unit) {
                 if (selected) Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))
                 else Brush.verticalGradient(listOf(Scr.panel, Scr.panel)),
             )
+            .inkFrame(isCatTheme(), 14.dp, strong = selected, seed = text.length)
             .clickable(onClick = onClick)
             .padding(horizontal = 11.dp, vertical = 5.dp),
     )
@@ -785,6 +791,7 @@ private fun Button(text: String, modifier: Modifier, primary: Boolean, onClick: 
                 if (primary) Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))
                 else Brush.verticalGradient(listOf(Scr.panel, Scr.panel)),
             )
+            .inkFrame(isCatTheme(), 10.dp, strong = primary, seed = text.length + 3)
             .clickable(onClick = onClick)
             .padding(vertical = 11.dp),
         contentAlignment = Alignment.Center,

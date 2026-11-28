@@ -128,9 +128,7 @@ class MainActivity : ComponentActivity() {
             JeopdaTheme {
                 LaunchedEffect(mode) { applySystemBars(mode == Mode.FOLDER) }
                 when (mode) {
-                    Mode.FOLDER -> androidx.compose.runtime.CompositionLocalProvider(
-                        com.aggro1025.jeopda.ui.theme.LocalFolderTheme provides theme,
-                    ) {
+                    Mode.FOLDER -> com.aggro1025.jeopda.ui.theme.ProvideFolderTheme(theme) {
                         FolderApp(
                             screen = screen,
                             onScreen = { screen = it },

@@ -118,6 +118,8 @@ fun DialPicker(
 
 @Composable
 private fun DialFace(minutes: Int, modifier: Modifier) {
+    val accent = Scr.accent
+    val accentDeep = Scr.accentDeep
     Canvas(modifier) {
         val r = this.size.minDimension / 2f
         val c = Offset(this.size.width / 2f, this.size.height / 2f)
@@ -127,7 +129,7 @@ private fun DialFace(minutes: Int, modifier: Modifier) {
         drawCircle(Color(0x26FFFFFF), radius = ring, center = c, style = Stroke(stroke))
         val sweep = minutes / UnlockRules.MAX_MINUTES.toFloat() * 360f
         drawArc(
-            brush = Brush.sweepGradient(listOf(Scr.accentDeep, Scr.accent, Scr.accentDeep), c),
+            brush = Brush.sweepGradient(listOf(accentDeep, accent, accentDeep), c),
             startAngle = -90f,
             sweepAngle = sweep,
             useCenter = false,
@@ -151,6 +153,6 @@ private fun DialFace(minutes: Int, modifier: Modifier) {
         val a = Math.toRadians(sweep - 90.0)
         val knob = Offset(c.x + ring * cos(a).toFloat(), c.y + ring * sin(a).toFloat())
         drawCircle(Color.White, radius = stroke * 0.95f, center = knob)
-        drawCircle(Scr.accentDeep, radius = stroke * 0.45f, center = knob)
+        drawCircle(accentDeep, radius = stroke * 0.45f, center = knob)
     }
 }

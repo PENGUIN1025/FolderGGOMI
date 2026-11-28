@@ -31,14 +31,14 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
-import com.aggro1025.jeopda.ui.Scr
+import com.aggro1025.jeopda.ui.ScrFixed
 import com.aggro1025.jeopda.ui.folder.ThemePreview
 import com.aggro1025.jeopda.ui.theme.FolderTheme
 
 /** 테마 하나의 상태 */
 data class ThemeItem(val theme: FolderTheme, val owned: Boolean, val applied: Boolean, val price: String?)
 
-private fun t(size: TextUnit, color: Color = Scr.text, weight: FontWeight = FontWeight.Normal) =
+private fun t(size: TextUnit, color: Color = ScrFixed.text, weight: FontWeight = FontWeight.Normal) =
     TextStyle(fontSize = size, color = color, fontWeight = weight)
 
 /**
@@ -56,7 +56,7 @@ fun ThemeScreen(
 ) {
     var selectedId by rememberSaveable { mutableStateOf((items.firstOrNull { it.applied && it.theme.paid } ?: items.firstOrNull { it.theme.paid } ?: items.first()).theme.id) }
     val sel = items.firstOrNull { it.theme.id == selectedId } ?: items.first()
-    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Scr.wallTop, Scr.wallBottom)))) {
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(ScrFixed.wallTop, ScrFixed.wallBottom)))) {
         Column(
             Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -71,7 +71,7 @@ fun ThemeScreen(
                     val on = it.theme.id == selectedId
                     val base = Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
                     Column(
-                        (if (on) base.background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))) else base.background(Color(0x22FFFFFF)))
+                        (if (on) base.background(Brush.verticalGradient(listOf(ScrFixed.accent, ScrFixed.accentDeep))) else base.background(Color(0x22FFFFFF)))
                             .clickable { selectedId = it.theme.id }
                             .padding(vertical = 8.dp, horizontal = 10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -84,7 +84,7 @@ fun ThemeScreen(
                                 it.owned -> "구매함"
                                 else -> it.price ?: it.theme.fallbackPrice ?: ""
                             },
-                            style = t(12.sp, if (on) Scr.text else Scr.dim),
+                            style = t(12.sp, if (on) ScrFixed.text else ScrFixed.dim),
                         )
                     }
                 }
@@ -94,7 +94,7 @@ fun ThemeScreen(
                 val w = min(maxWidth, maxHeight * (384f / 832f))
                 ThemePreview(sel.theme, w)
             }
-            Text(sel.theme.note, style = t(13.sp, Scr.dim), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Text(sel.theme.note, style = t(13.sp, ScrFixed.dim), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             val label = when {
                 busy -> "결제 창을 여는 중…"
                 sel.applied -> "적용 중이에요"
@@ -106,25 +106,25 @@ fun ThemeScreen(
             Box(
                 (if (enabled) base.clickable { if (sel.owned) onApply(sel.theme) else onBuy(sel.theme) } else base)
                     .background(
-                        if (enabled) Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))
+                        if (enabled) Brush.verticalGradient(listOf(ScrFixed.accent, ScrFixed.accentDeep))
                         else Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x33FFFFFF))),
                     )
                     .padding(vertical = 13.dp),
                 contentAlignment = Alignment.Center,
-            ) { Text(label, style = t(16.sp, if (enabled) Scr.text else Scr.dim, FontWeight.Bold)) }
+            ) { Text(label, style = t(16.sp, if (enabled) ScrFixed.text else ScrFixed.dim, FontWeight.Bold)) }
             if (sel.theme.paid) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "한 번 사면 계속 써요 · 같은 구글 계정이면 다시 설치해도 그대로예요",
-                        style = t(11.sp, Scr.dim),
+                        style = t(11.sp, ScrFixed.dim),
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         "구매 복원",
-                        style = t(12.sp, Scr.accent, FontWeight.Bold),
+                        style = t(12.sp, ScrFixed.accent, FontWeight.Bold),
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .border(1.dp, Scr.accent.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .border(1.dp, ScrFixed.accent.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                             .clickable(onClick = onRestore)
                             .padding(horizontal = 10.dp, vertical = 5.dp),
                     )

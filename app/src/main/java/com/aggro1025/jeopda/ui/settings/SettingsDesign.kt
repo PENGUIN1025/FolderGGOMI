@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aggro1025.jeopda.R
 import com.aggro1025.jeopda.ui.Lcd
-import com.aggro1025.jeopda.ui.Scr
+import com.aggro1025.jeopda.ui.ScrFixed
 
 /** 설정 화면 (폴더폰 화면과 같은 남색 스타일) */
 
@@ -104,7 +104,7 @@ object NoCallbacks : SettingsCallbacks {
     override fun onToggleSmartHomeFresh() = Unit
 }
 
-private fun t(size: TextUnit, color: Color = Scr.text, weight: FontWeight = FontWeight.Normal) =
+private fun t(size: TextUnit, color: Color = ScrFixed.text, weight: FontWeight = FontWeight.Normal) =
     TextStyle(fontSize = size, color = color, fontWeight = weight)
 
 private val Card = Color(0x1FFFFFFF)
@@ -127,7 +127,7 @@ fun SettingsDesign(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Scr.wallTop, Scr.wallBottom))),
+            .background(Brush.verticalGradient(listOf(ScrFixed.wallTop, ScrFixed.wallBottom))),
     ) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             // 머리말 (고정)
@@ -149,7 +149,7 @@ fun SettingsDesign(
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text("접다 설정", style = t(19.sp, weight = FontWeight.Bold))
-                        Text("버전 ${ui.version} · ${ui.modeText}", style = t(12.sp, Scr.dim))
+                        Text("버전 ${ui.version} · ${ui.modeText}", style = t(12.sp, ScrFixed.dim))
                     }
                 }
                 if (ui.homeLost) {
@@ -165,14 +165,14 @@ fun SettingsDesign(
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text("스마트폰 모드", style = t(15.sp, weight = FontWeight.Bold))
-                            Text(ui.smartEndText, style = t(13.sp, Scr.dim))
+                            Text(ui.smartEndText, style = t(13.sp, ScrFixed.dim))
                         }
                         Text(
                             "폴더폰으로",
                             style = t(14.sp, weight = FontWeight.Bold),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep)))
+                                .background(Brush.verticalGradient(listOf(ScrFixed.accent, ScrFixed.accentDeep)))
                                 .clickable(onClick = cb::onReturnToFolder)
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
                         )
@@ -226,11 +226,11 @@ private fun StepHeader(page: Int) {
                 Modifier
                     .size(24.dp)
                     .clip(CircleShape)
-                    .background(if (on) Scr.accent else Color(0x33FFFFFF)),
+                    .background(if (on) ScrFixed.accent else Color(0x33FFFFFF)),
                 contentAlignment = Alignment.Center,
             ) { Text("${i + 1}", style = t(13.sp, weight = FontWeight.Bold)) }
             Spacer(Modifier.width(6.dp))
-            Text(label, style = t(14.sp, if (on) Scr.text else Scr.dim, if (on) FontWeight.Bold else FontWeight.Normal))
+            Text(label, style = t(14.sp, if (on) ScrFixed.text else ScrFixed.dim, if (on) FontWeight.Bold else FontWeight.Normal))
             if (i == 0) {
                 Box(Modifier.padding(horizontal = 10.dp).width(24.dp).height(1.dp).background(Color(0x40FFFFFF)))
             }
@@ -252,11 +252,11 @@ private fun Tabs(page: Int, onPage: (Int) -> Unit) {
             val on = i == page
             val base = Modifier.weight(1f).clip(RoundedCornerShape(9.dp))
             Box(
-                (if (on) base.background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))) else base)
+                (if (on) base.background(Brush.verticalGradient(listOf(ScrFixed.accent, ScrFixed.accentDeep))) else base)
                     .clickable { onPage(i) }
                     .padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center,
-            ) { Text(label, style = t(15.sp, if (on) Scr.text else Scr.dim, FontWeight.Bold)) }
+            ) { Text(label, style = t(15.sp, if (on) ScrFixed.text else ScrFixed.dim, FontWeight.Bold)) }
         }
     }
 }
@@ -273,11 +273,11 @@ private fun PermissionPage(ui: SettingsUi, cb: SettingsCallbacks) {
             .padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.Lock, null, tint = Scr.accent, modifier = Modifier.size(18.dp))
+        Icon(Icons.Filled.Lock, null, tint = ScrFixed.accent, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
         Column {
             Text("연락처·알림·사용 기록은 폰 밖으로 나가지 않아요", style = t(13.sp, weight = FontWeight.Bold))
-            Text("폴더폰처럼 쓰는 데만 쓰고, 저장하거나 보내지 않아요", style = t(12.sp, Scr.text.copy(alpha = 0.85f)))
+            Text("폴더폰처럼 쓰는 데만 쓰고, 저장하거나 보내지 않아요", style = t(12.sp, ScrFixed.text.copy(alpha = 0.85f)))
         }
     }
     val doneCount = ui.steps.count { it.done }
@@ -307,7 +307,7 @@ private fun AppSettingsPage(ui: SettingsUi, cb: SettingsCallbacks) {
         Text(
             if (ui.editable) "6~9번 누르면 고르기, 길게 누르면 비우기 (게임·소셜·영상·브라우저 제외)"
             else "폴더폰 모드에서는 보기만 할 수 있어요",
-            style = t(11.sp, Scr.dim),
+            style = t(11.sp, ScrFixed.dim),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
     }
@@ -317,14 +317,14 @@ private fun AppSettingsPage(ui: SettingsUi, cb: SettingsCallbacks) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text("전화·문자·알람·재난문자는 항상 와요", style = t(12.sp, Scr.dim))
+        Text("전화·문자·알람·재난문자는 항상 와요", style = t(12.sp, ScrFixed.dim))
         ui.allowedNotifApps.forEach { app ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("· ${app.label}", style = t(14.sp), modifier = Modifier.weight(1f))
                 if (ui.editable) {
                     Text(
                         "빼기",
-                        style = t(13.sp, Scr.dim),
+                        style = t(13.sp, ScrFixed.dim),
                         modifier = Modifier.clickable { cb.onRemoveNotifApp(app.pkg) }.padding(horizontal = 6.dp, vertical = 3.dp),
                     )
                 }
@@ -333,11 +333,11 @@ private fun AppSettingsPage(ui: SettingsUi, cb: SettingsCallbacks) {
         if (ui.allowedNotifApps.size < 3 && ui.editable) {
             Text(
                 "+ 앱 추가",
-                style = t(14.sp, Scr.accent, FontWeight.Bold),
+                style = t(14.sp, ScrFixed.accent, FontWeight.Bold),
                 modifier = Modifier.clickable(onClick = cb::onAddNotifApp).padding(vertical = 3.dp),
             )
         }
-        if (!ui.editable) Text("폴더폰 모드에서는 보기만 할 수 있어요", style = t(12.sp, Scr.dim))
+        if (!ui.editable) Text("폴더폰 모드에서는 보기만 할 수 있어요", style = t(12.sp, ScrFixed.dim))
     }
 
     Section("기타")
@@ -375,7 +375,7 @@ private fun SecondaryButton(text: String, onClick: () -> Unit) {
 
 @Composable
 private fun Section(text: String) =
-    Text(text, style = t(13.sp, Scr.accent, FontWeight.Bold), modifier = Modifier.padding(start = 4.dp, top = 2.dp))
+    Text(text, style = t(13.sp, ScrFixed.accent, FontWeight.Bold), modifier = Modifier.padding(start = 4.dp, top = 2.dp))
 
 @Composable
 private fun Divider() = Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).height(1.dp).background(CardLine))
@@ -405,9 +405,9 @@ private fun StepRow(n: Int, s: SetupStep, onClick: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(s.title, style = t(14.sp, weight = FontWeight.Bold))
                 Spacer(Modifier.width(6.dp))
-                Text(if (s.required) "필수" else "선택", style = t(11.sp, if (s.required) Scr.warn else Scr.dim))
+                Text(if (s.required) "필수" else "선택", style = t(11.sp, if (s.required) ScrFixed.warn else ScrFixed.dim))
             }
-            Text(s.desc, style = t(12.sp, Scr.dim), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(s.desc, style = t(12.sp, ScrFixed.dim), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(8.dp))
         if (s.done) {
@@ -418,7 +418,7 @@ private fun StepRow(n: Int, s: SetupStep, onClick: () -> Unit) {
                 style = t(13.sp, weight = FontWeight.Bold),
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep)))
+                    .background(Brush.verticalGradient(listOf(ScrFixed.accent, ScrFixed.accentDeep)))
                     .padding(horizontal = 12.dp, vertical = 5.dp),
             )
         }
@@ -441,9 +441,9 @@ private fun SlotCell(item: SlotItem, editable: Boolean, modifier: Modifier, onCl
             when {
                 item.icon != null -> Image(item.icon, null, Modifier.size(30.dp))
                 item.empty -> Box(
-                    Modifier.size(30.dp).border(1.5.dp, Scr.faint, RoundedCornerShape(10.dp)),
+                    Modifier.size(30.dp).border(1.5.dp, ScrFixed.faint, RoundedCornerShape(10.dp)),
                     contentAlignment = Alignment.Center,
-                ) { Text("+", style = t(18.sp, Scr.faint)) }
+                ) { Text("+", style = t(18.sp, ScrFixed.faint)) }
                 else -> Box(
                     Modifier.size(30.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x40FFFFFF)),
                     contentAlignment = Alignment.Center,
@@ -453,7 +453,7 @@ private fun SlotCell(item: SlotItem, editable: Boolean, modifier: Modifier, onCl
         Spacer(Modifier.height(2.dp))
         Text(
             "${item.slot} ${item.label}",
-            style = t(12.sp, if (item.empty) Scr.faint else Scr.text),
+            style = t(12.sp, if (item.empty) ScrFixed.faint else ScrFixed.text),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -467,8 +467,8 @@ private fun LinkRow(title: String, value: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = t(14.sp), modifier = Modifier.weight(1f))
-        if (value.isNotEmpty()) Text(value, style = t(13.sp, Scr.dim))
-        Text("  ›", style = t(16.sp, Scr.dim))
+        if (value.isNotEmpty()) Text(value, style = t(13.sp, ScrFixed.dim))
+        Text("  ›", style = t(16.sp, ScrFixed.dim))
     }
 }
 
@@ -478,12 +478,12 @@ private fun PrimaryButton(text: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         (if (enabled) base.clickable(onClick = onClick) else base)
             .background(
-                if (enabled) Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))
+                if (enabled) Brush.verticalGradient(listOf(ScrFixed.accent, ScrFixed.accentDeep))
                 else Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x33FFFFFF))),
             )
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(text, style = t(16.sp, if (enabled) Scr.text else Scr.dim, FontWeight.Bold)) }
+    ) { Text(text, style = t(16.sp, if (enabled) ScrFixed.text else ScrFixed.dim, FontWeight.Bold)) }
 }
 
 @Composable
@@ -493,11 +493,11 @@ private fun Banner(title: String, desc: String, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0x40FFC98A))
-            .border(1.dp, Scr.warn, RoundedCornerShape(14.dp))
+            .border(1.dp, ScrFixed.warn, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(14.dp),
     ) {
-        Text(title, style = t(15.sp, Scr.warn, FontWeight.Bold))
+        Text(title, style = t(15.sp, ScrFixed.warn, FontWeight.Bold))
         Text(desc, style = t(13.sp))
     }
 }

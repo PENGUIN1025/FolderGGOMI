@@ -242,7 +242,7 @@ private fun CenterNote(text: String) {
 @Composable
 private fun ContactRow(c: Contact, selected: Boolean, onClick: () -> Unit) {
     val base = Modifier.fillMaxWidth().padding(vertical = 1.dp).clip(RoundedCornerShape(8.dp))
-    val bar = if (selected) base.background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))) else base
+    val bar = if (selected) base.background(Brush.verticalGradient(listOf(Scr.accent, Scr.accentDeep))).inkFrame(isCatTheme(), 8.dp, strong = true) else base
     Row(
         bar.clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
