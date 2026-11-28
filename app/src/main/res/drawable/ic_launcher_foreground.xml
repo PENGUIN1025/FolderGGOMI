@@ -1,24 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 접다 아이콘: 흰 바탕 위 남색 폴더폰 (108dp 캔버스, 가운데 66dp 안전 영역 안) -->
+<!-- 접다 아이콘: 흰 바탕 위 열린 폴더폰 (윗판 화면 + 경첩 + 아랫판 키패드). 108dp 캔버스, 안전 영역 안으로 축소 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 본체 -->
-    <path
-        android:fillColor="#FF1C2E52"
-        android:pathData="M44,25h20a7,7 0,0 1,7 7v44a7,7 0,0 1,-7 7h-20a7,7 0,0 1,-7 -7v-44a7,7 0,0 1,7 -7z" />
-    <!-- 화면 -->
-    <path
-        android:fillColor="#FF5AB0FF"
-        android:pathData="M45,31h18a2,2 0,0 1,2 2v14a2,2 0,0 1,-2 2h-18a2,2 0,0 1,-2 -2v-14a2,2 0,0 1,2 -2z" />
-    <!-- 접히는 선 -->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M37,53.2h34v1.6h-34z" />
-    <!-- 키패드 3x3 -->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M44,60h5v3.4h-5zM51.5,60h5v3.4h-5zM59,60h5v3.4h-5zM44,66.3h5v3.4h-5zM51.5,66.3h5v3.4h-5zM59,66.3h5v3.4h-5zM44,72.6h5v3.4h-5zM51.5,72.6h5v3.4h-5zM59,72.6h5v3.4h-5z" />
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.86"
+        android:scaleY="0.86">
+        <!-- 윗판 -->
+        <path
+            android:fillColor="#FF1C2E52"
+            android:pathData="M45,16h18a7,7 0,0 1,7 7v25a3,3 0,0 1,-3 3h-26a3,3 0,0 1,-3 -3v-25a7,7 0,0 1,7 -7z" />
+        <!-- 수화부 구멍 -->
+        <path
+            android:fillColor="#FF5C6B82"
+            android:pathData="M50.5,20h7a1,1 0,0 1,0 2h-7a1,1 0,0 1,0 -2z" />
+        <!-- 화면 -->
+        <path
+            android:fillColor="#FF5AB0FF"
+            android:pathData="M44.5,25h19a1.5,1.5 0,0 1,1.5 1.5v18a1.5,1.5 0,0 1,-1.5 1.5h-19a1.5,1.5 0,0 1,-1.5 -1.5v-18a1.5,1.5 0,0 1,1.5 -1.5z" />
+        <!-- 경첩 -->
+        <path
+            android:fillColor="#FF13213D"
+            android:pathData="M42,51h24a3,3 0,0 1,0 6h-24a3,3 0,0 1,0 -6z" />
+        <path
+            android:fillColor="#FF2A6FD6"
+            android:pathData="M44,53.2h20v1.6h-20z" />
+        <!-- 아랫판 (조금 넓게: 펼쳐진 느낌) -->
+        <path
+            android:fillColor="#FF1C2E52"
+            android:pathData="M40,57h28a3,3 0,0 1,3 3v28a7,7 0,0 1,-7 7h-20a7,7 0,0 1,-7 -7v-28a3,3 0,0 1,3 -3z" />
+        <!-- 방향키 -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M54,60.5a3.2,3.2 0,1 1,0 6.4a3.2,3.2 0,1 1,0 -6.4z" />
+        <!-- 소프트키 -->
+        <path
+            android:fillColor="#FF5AB0FF"
+            android:pathData="M42.5,62.8h5v1.8h-5zM60.5,62.8h5v1.8h-5z" />
+        <!-- 숫자키 3x3 -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M43,70h5.5v3.2h-5.5zM51.25,70h5.5v3.2h-5.5zM59.5,70h5.5v3.2h-5.5zM43,76h5.5v3.2h-5.5zM51.25,76h5.5v3.2h-5.5zM59.5,76h5.5v3.2h-5.5zM43,82h5.5v3.2h-5.5zM51.25,82h5.5v3.2h-5.5zM59.5,82h5.5v3.2h-5.5z" />
+    </group>
 </vector>
