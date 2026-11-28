@@ -1,0 +1,878 @@
+<title>달빛 폴더폰 시안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* 레이아웃: 왼쪽 폰 화면(384×832dp 그대로) + 오른쪽 설명과 조절판. 좁으면 세로로 쌓임.
+     한 가지 밝은 종이 느낌으로만 디자인(다크 모드 없음, 배경색을 직접 지정). */
+  :root {
+    --page: #ECE8F1;
+    --paper: #FFFDF8;
+    --ink: #3A2E4D;
+    --muted: #6A607C;
+    --line: #D8D1E3;
+    --accent: #D9503F;
+    --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font);
+    box-sizing: border-box;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 20px 32px;
+  }
+  main { display: flex; flex-wrap: wrap; gap: 28px; justify-content: center; align-items: flex-start; max-width: 920px; margin: 0 auto; }
+  .phone {
+    width: min(384px, 100%, calc((100dvh - 56px) * 0.4615));
+    min-width: min(260px, 100%);
+    aspect-ratio: 384 / 832;
+    max-width: 100%;
+    border-radius: 26px;
+    overflow: hidden;
+    background: var(--paper);
+    box-shadow: 0 0 0 1.5px var(--ink), 0 18px 40px rgba(58, 46, 77, .22);
+    flex: none;
+  }
+  .phone svg { display: block; width: 100%; height: 100%; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  aside { flex: 1 1 280px; min-width: 0; max-width: 440px; display: flex; flex-direction: column; gap: 14px; }
+  h1 { font-size: 1.35rem; line-height: 1.3; margin: 0; text-wrap: balance; }
+  p { margin: 0; line-height: 1.65; font-size: .92rem; color: var(--muted); }
+  .state { font-size: .85rem; padding: 8px 12px; border-radius: 10px; background: var(--paper); border: 1px solid var(--line); }
+  .state b { color: var(--ink); }
+  .tips { margin: 0; padding-left: 1.1em; font-size: .88rem; line-height: 1.7; color: var(--muted); }
+  .tips b { color: var(--ink); font-weight: 600; }
+  details { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+  summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
+  .ctl { display: grid; grid-template-columns: 7.2rem minmax(0, 1fr) 2.8rem; align-items: center; gap: 8px; font-size: .84rem; margin-top: 8px; }
+  .ctl output { font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: .84rem; margin-top: 10px; }
+  .colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; margin-top: 12px; font-size: .8rem; }
+  .colors label { display: flex; align-items: center; gap: 6px; }
+  input[type=color] { width: 28px; height: 22px; border: 1px solid var(--line); border-radius: 4px; padding: 0; background: none; }
+  button { font: inherit; font-size: .82rem; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--page); color: var(--ink); cursor: pointer; margin-top: 12px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<main>
+  <div class="phone"><svg id="scene" viewBox="0 0 384 832" role="img" aria-label="흰 손그림 폴더폰. 화면에는 달빛 밤하늘, 전차, 구름 위에 엎드린 고양이"></svg></div>
+  <aside>
+    <h1>달빛 폴더폰 시안</h1>
+    <p>접다 홈 화면을 흰 종이에 펜으로 그린 폴더폰으로 바꿔 본 시안이에요. 화면 크기는 앱과 같은 384×832dp이고, 버튼 배치도 지금 앱과 같아요.</p>
+    <div class="state" id="state" aria-live="polite">움직임 <b>켜짐</b></div>
+    <ul class="tips">
+      <li><b>고양이</b>에 올리면 꼬리가 빨라지고, 누르면 뛰어올라요</li>
+      <li><b>전차</b>를 누르면 김이 나고 흔들려요</li>
+      <li><b>달</b>을 누르면 반짝이가 터져요</li>
+      <li>빈 <b>하늘</b>을 누르면 별이 터지고 별똥별이 지나가요</li>
+      <li>앱처럼 10초 동안 움직인 뒤 쉬어요. 누르면 다시 움직여요</li>
+    </ul>
+    <details id="panel">
+      <summary>그림 조절 (CONFIG)</summary>
+      <div id="controls"></div>
+      <label class="check"><input type="checkbox" id="autoMeteor"> 별똥별 저절로 떨어지기</label>
+      <div class="colors" id="colors"></div>
+      <button type="button" id="reset">처음 값으로</button>
+    </details>
+  </aside>
+</main>
+
+<script>
+/* =================== 설정 =================== */
+const DEFAULTS = {
+  lineWidth: 1.15,   // 펜 선 굵기
+  taper: 0.32,       // 선 끝이 가늘어지는 길이 (0~0.5)
+  retrace: 0.35,     // 한 번 더 겹쳐 그은 선의 비율
+  wobble: 1.3,       // 선 떨림 세기 (px)
+  wobbleFps: 6,      // 선 떨림이 바뀌는 횟수 (초당)
+  speed: 1,          // 움직임 속도
+  fps: 30,           // 최대 프레임 (30 이하)
+  parallax: 6,       // 시차 거리 (px)
+  autoMeteor: true,  // 별똥별 저절로
+  restAfter: 10,     // 누른 뒤 몇 초 움직이고 쉴지 (0 = 계속)
+  colors: {
+    ink: '#3A2E4D', body: '#FFFDF8',
+    skyTop: '#5B4CB8', skyMid: '#9B8FE0', skyLight: '#C9C3F2', skyLow: '#A9D0F5',
+    moon: '#F7E08A', planet: '#F29A98',
+    tram: '#FFF0D6', band: '#D9503F', window: '#F4C85A',
+    cat: '#FFF8EE', ginger: '#F0A050', cloud: '#FFFFFF',
+  },
+};
+const CONFIG = JSON.parse(JSON.stringify(DEFAULTS));
+const COLOR_LABELS = { ink: '펜 선', body: '폰 몸체', skyTop: '하늘 위', skyMid: '하늘 중간', skyLight: '하늘 밝은', skyLow: '지평선', moon: '달', planet: '행성', tram: '전차', band: '빨간 띠·소프트키', window: '창문 불빛', cat: '고양이', ginger: '고양이 무늬', cloud: '구름' };
+
+/* =================== 도구 =================== */
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('scene');
+const reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
+let reduce = reduceMQ.matches;
+reduceMQ.addEventListener?.('change', e => { reduce = e.matches; wake(); });
+
+function mk(tag, attrs, parent) {
+  const el = document.createElementNS(NS, tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(el);
+  return el;
+}
+const fx1 = v => (Math.round(v * 10) / 10);
+const P = p => fx1(p[0]) + ',' + fx1(p[1]);
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hash(i) { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+function noise1(x) { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return hash(i) * (1 - u) + hash(i + 1) * u; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerpK = (dt, rate) => 1 - Math.exp(-dt * rate);
+let rng = mulberry32(7);
+const rand = (a, b) => a + (b - a) * rng();
+
+// 경로 위 점 뽑기 (getPointAtLength)
+const sampSvg = mk('svg', { width: 0, height: 0, 'aria-hidden': 'true' });
+sampSvg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+document.body.appendChild(sampSvg);
+const sampPath = mk('path', {}, sampSvg);
+function sample(d, step = 2.5) {
+  sampPath.setAttribute('d', d);
+  const L = sampPath.getTotalLength();
+  const n = Math.max(2, Math.ceil(L / step));
+  const out = [];
+  for (let i = 0; i <= n; i++) { const p = sampPath.getPointAtLength(L * i / n); out.push([p.x, p.y]); }
+  return out;
+}
+function densify(pts, step = 2.5) {
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(L / step));
+    for (let k = 1; k <= n; k++) out.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]);
+  }
+  return out;
+}
+
+/* ===== 굵기가 변하는 펜 선: 경로를 다각형으로 바꾼다 ===== */
+let wobTick = 0;
+const strokes = [];   // 정적인 선 (떨림 때만 다시 그림)
+const dyn = [];       // 매 프레임 다시 그리는 선 (꼬리, 목도리)
+
+function strokeD(pts, s, tick, t0, t1, off, wScale) {
+  const n = pts.length;
+  if (n < 2) return '';
+  const closed = s.closed && t0 === 0 && t1 === 1;
+  const cum = [0];
+  for (let i = 1; i < n; i++) cum[i] = cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  const L = cum[n - 1] || 1;
+  const tap = closed ? 0 : CONFIG.taper * s.taper;
+  const jit = CONFIG.wobble * 0.22;
+  const left = [], right = [];
+  for (let i = 0; i < n; i++) {
+    const t = cum[i] / L;
+    if (t < t0 || t > t1) continue;
+    const tt = (t - t0) / ((t1 - t0) || 1);
+    const a = pts[i - 1] || (closed ? pts[n - 2] : pts[i]);
+    const b = pts[i + 1] || (closed ? pts[1] : pts[i]);
+    let tx = b[0] - a[0], ty = b[1] - a[1];
+    const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+    const nx = -ty, ny = tx;
+    let w = CONFIG.lineWidth * s.w * wScale * (0.72 + 0.56 * noise1(i * 0.09 + s.seed));
+    if (tap > 0) w *= Math.pow(Math.min(1, tt / tap), 0.7) * Math.pow(Math.min(1, (1 - tt) / tap), 0.7);
+    if (s.persp) w *= s.persp(pts[i]);
+    w = Math.max(w, 0.08);
+    const j = (noise1(i * 0.35 + s.seed * 1.7 + tick * 13.1) - 0.5) * jit + off;
+    const cx = pts[i][0] + nx * j, cy = pts[i][1] + ny * j;
+    left.push([cx + nx * w / 2, cy + ny * w / 2]);
+    right.push([cx - nx * w / 2, cy - ny * w / 2]);
+  }
+  if (left.length < 2) return '';
+  right.reverse();
+  if (closed) return 'M' + left.map(P).join('L') + 'ZM' + right.map(P).join('L') + 'Z';
+  return 'M' + left.map(P).join('L') + 'L' + right.map(P).join('L') + 'Z';
+}
+function drawStroke(s, pts) {
+  s.el.setAttribute('d', strokeD(pts, s, wobTick, 0, 1, 0, 1));
+  if (CONFIG.retrace > s.retR && pts.length > 6) s.ret.setAttribute('d', strokeD(pts, s, wobTick + 0.37, s.rt0, s.rt1, 1.25 * s.rside, 0.55));
+  else s.ret.setAttribute('d', '');
+}
+/** 펜 선 하나. src: 경로 문자열, 점 배열, 또는 매 프레임 점을 돌려주는 함수 */
+function ink(parent, src, o = {}) {
+  const s = {
+    w: o.w ?? 1, closed: !!o.closed, taper: o.taper ?? 1, persp: o.persp || null,
+    seed: rng() * 500, retR: o.noRet ? 2 : rng(), rt0: 0.04 + rng() * 0.3, rt1: 0.55 + rng() * 0.4, rside: rng() < 0.5 ? -1 : 1,
+  };
+  const color = o.color || CONFIG.colors.ink;
+  const op = o.op ?? 1;
+  s.ret = mk('path', { fill: color, opacity: fx1(op * 0.45) }, parent);
+  s.el = mk('path', { fill: color, opacity: op, 'fill-rule': 'evenodd' }, parent);
+  if (typeof src === 'function') { s.fn = src; dyn.push(s); }
+  else { s.base = typeof src === 'string' ? sample(src, o.step || 2.5) : densify(src); strokes.push(s); drawStroke(s, s.base); }
+  return s;
+}
+/** 나뭇잎 모양 색연필 빗금 한 획 */
+function leaf(parent, x, y, len, ang, w, color, op) {
+  const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
+  const mx = (x + x2) / 2, my = (y + y2) / 2, nx = -Math.sin(ang) * w, ny = Math.cos(ang) * w;
+  return mk('path', { d: `M${P([x, y])}Q${P([mx + nx, my + ny])} ${P([x2, y2])}Q${P([mx - nx, my - ny])} ${P([x, y])}Z`, fill: color, opacity: op }, parent);
+}
+let clipN = 0;
+function clipFor(defs, d) { const id = 'c' + (clipN++); mk('path', { d }, mk('clipPath', { id }, defs)); return `url(#${id})`; }
+
+function ellipsePts(cx, cy, rx, ry, rot, a0, a1, n = 40) {
+  const out = [], c = Math.cos(rot), s = Math.sin(rot);
+  for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n, x = rx * Math.cos(a), y = ry * Math.sin(a); out.push([cx + x * c - y * s, cy + x * s + y * c]); }
+  return out;
+}
+const STAR4 = s => `M0,${-s}Q${.16 * s},${-.16 * s} ${s},0Q${.16 * s},${.16 * s} 0,${s}Q${-.16 * s},${.16 * s} ${-s},0Q${-.16 * s},${-.16 * s} 0,${-s}Z`;
+
+/* =================== 장면 만들기 =================== */
+let R = {};            // 움직이는 요소들
+let clouds = [], sparkles = [], dots = [], windows = [], mists = [];
+let turb = null, wobFilter = null;
+const PANEL_CORNERS = [[14, 12], [370, 10], [372, 451], [12, 453]];
+
+function cutEdge(corners) {
+  const out = [];
+  for (let k = 0; k < corners.length; k++) {
+    const a = corners[k], b = corners[(k + 1) % corners.length];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(2, Math.round(L / 22));
+    const nx = -(b[1] - a[1]) / L, ny = (b[0] - a[0]) / L;
+    for (let i = 0; i < n; i++) {
+      const t = i / n, j = i === 0 ? 0 : (rng() - 0.5) * 1.6;
+      out.push([a[0] + (b[0] - a[0]) * t + nx * j, a[1] + (b[1] - a[1]) * t + ny * j]);
+    }
+  }
+  return 'M' + out.map(P).join('L') + 'Z';
+}
+function cloudD(x, y, w, h, b) {
+  const yb = y + h * 0.45, pts = [];
+  for (let i = 0; i <= b; i++) pts.push([x + w * i / b + (i > 0 && i < b ? (rng() - 0.5) * w / b * 0.3 : 0), yb + (rng() - 0.5) * h * 0.18]);
+  let d = `M${P([x, y + h])}Q${P([x - 4, (y + h + pts[0][1]) / 2])} ${P(pts[0])}`;
+  for (let i = 0; i < b; i++) {
+    const a = pts[i], c = pts[i + 1], ch = Math.hypot(c[0] - a[0], c[1] - a[1]), r = fx1(ch / 2 * (1 + rng() * 0.25));
+    d += `A${r},${r} 0 0 1 ${P(c)}`;
+  }
+  d += `Q${P([x + w + 4, (y + h + pts[b][1]) / 2])} ${P([x + w, y + h])}Q${P([x + w / 2, y + h + 5])} ${P([x, y + h])}Z`;
+  return { d, yb };
+}
+function cloud(defs, parent, x, y, w, h, b, o) {
+  const g = mk('g', {}, parent);
+  const { d, yb } = cloudD(x, y, w, h, b);
+  mk('path', { d, fill: o.fill, opacity: o.fillOp ?? 1 }, g);
+  const hg = mk('g', { 'clip-path': clipFor(defs, d) }, g);
+  for (let i = 0; i < o.hatch; i++) {
+    const hx = rand(x, x + w), hy = rand(yb - 2, y + h);
+    leaf(hg, hx, hy, rand(5, 10), -0.62 + rand(-0.15, 0.15), rand(0.5, 0.95), o.hatchColor, o.hatchOp * rand(0.6, 1));
+  }
+  ink(g, d, { closed: true, w: o.inkW, op: o.inkOp, step: 3 });
+  clouds.push({ g, amp: o.amp * rand(0.6, 1.2), per: o.per * rand(0.8, 1.2), ph: rand(0, 6.28) });
+  return g;
+}
+
+function build() {
+  const C = CONFIG.colors;
+  svg.textContent = '';
+  strokes.length = 0; dyn.length = 0; clouds = []; sparkles = []; dots = []; windows = []; mists = [];
+  clipN = 0; rng = mulberry32(7); R = {};
+
+  const defs = mk('defs', {}, svg);
+  const sky = mk('linearGradient', { id: 'sky', x1: 0, y1: 10, x2: 0, y2: 320, gradientUnits: 'userSpaceOnUse' }, defs);
+  [[0, C.skyTop], [0.45, C.skyMid], [0.75, C.skyLight], [1, C.skyLow]].forEach(([o, c]) => mk('stop', { offset: o, 'stop-color': c }, sky));
+  const halo = mk('radialGradient', { id: 'halo' }, defs);
+  mk('stop', { offset: 0.45, 'stop-color': C.moon, 'stop-opacity': 0.75 }, halo);
+  mk('stop', { offset: 1, 'stop-color': C.moon, 'stop-opacity': 0 }, halo);
+  const glow = mk('radialGradient', { id: 'glow' }, defs);
+  mk('stop', { offset: 0, 'stop-color': C.window, 'stop-opacity': 0.85 }, glow);
+  mk('stop', { offset: 1, 'stop-color': C.window, 'stop-opacity': 0 }, glow);
+  const haze = mk('linearGradient', { id: 'haze', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+  [[0, 0], [0.55, 0.5], [1, 0]].forEach(([o, a]) => mk('stop', { offset: o, 'stop-color': '#FFFFFF', 'stop-opacity': a }, haze));
+  // 선 떨림 필터
+  wobFilter = mk('filter', { id: 'wob', x: '-3%', y: '-3%', width: '106%', height: '106%' }, defs);
+  turb = mk('feTurbulence', { type: 'fractalNoise', baseFrequency: 0.04, numOctaves: 2, seed: 1, result: 'n' }, wobFilter);
+  R.disp = mk('feDisplacementMap', { in: 'SourceGraphic', in2: 'n', scale: CONFIG.wobble, xChannelSelector: 'R', yChannelSelector: 'G' }, wobFilter);
+  // 종이 결
+  const grain = mk('filter', { id: 'grain', x: 0, y: 0, width: '100%', height: '100%' }, defs);
+  mk('feTurbulence', { type: 'fractalNoise', baseFrequency: 0.9, numOctaves: 3, stitchTiles: 'stitch' }, grain);
+  mk('feColorMatrix', { values: '0 0 0 0 0.23  0 0 0 0 0.18  0 0 0 0 0.3  0.4 0 0 0 -0.16' }, grain);
+  const blur = (id, sd) => mk('feGaussianBlur', { stdDeviation: sd }, mk('filter', { id, x: '-50%', y: '-50%', width: '200%', height: '200%' }, defs));
+  blur('b2', 2); blur('b5', 5);
+
+  // 몸체 (흰 종이)
+  mk('rect', { x: 0, y: 0, width: 384, height: 832, fill: C.body }, svg);
+
+  const art = mk('g', { id: 'art' }, svg);
+  if (CONFIG.wobble > 0) art.setAttribute('filter', 'url(#wob)');
+
+  /* ---------- 디스플레이: 오려 붙인 밤하늘 ---------- */
+  const panelD = cutEdge(PANEL_CORNERS);
+  mk('path', { d: panelD, fill: C.ink, opacity: 0.16, transform: 'translate(2.5,3.5)', filter: 'url(#b2)' }, art);
+  const disp = mk('g', { 'clip-path': clipFor(defs, panelD) }, art);
+
+  // 하늘
+  R.pSky = mk('g', {}, disp);
+  R.skyRect = mk('rect', { x: -30, y: -30, width: 444, height: 520, fill: 'url(#sky)', style: 'cursor:pointer' }, R.pSky);
+  const skyHatch = mk('g', { 'pointer-events': 'none' }, R.pSky);
+  for (let i = 0; i < 190; i++) {
+    const light = rng() < 0.55;
+    leaf(skyHatch, rand(-10, 390), rand(8, 300), rand(6, 13), -0.5 + rand(-0.15, 0.15), rand(0.55, 1.1), light ? '#FFFFFF' : '#2B1F6E', light ? rand(0.08, 0.18) : rand(0.07, 0.14));
+  }
+
+  // 달과 분홍 행성
+  R.pMoon = mk('g', {}, disp);
+  R.halo = mk('circle', { cx: 80, cy: 112, r: 50, fill: 'url(#halo)', 'pointer-events': 'none' }, R.pMoon);
+  const moonG = mk('g', { style: 'cursor:pointer' }, R.pMoon);
+  R.moonG = moonG;
+  const moonD = 'M50,112A30,30 0 1 1 110,112A30,30 0 1 1 50,112Z';
+  mk('path', { d: moonD, fill: C.moon }, moonG);
+  const mh = mk('g', { 'clip-path': clipFor(defs, moonD) }, moonG);
+  for (let i = 0; i < 34; i++) {
+    const a = rand(-0.6, 2.2), r = rand(4, 30), x = 80 + Math.cos(a) * r, y = 112 + Math.sin(a) * r;
+    leaf(mh, x, y, rand(5, 9), -0.7 + rand(-0.12, 0.12), rand(0.5, 0.9), '#D9A93A', rand(0.35, 0.6));
+  }
+  ink(moonG, 'M67,99q4,-3 8,0', { w: 0.7, op: 0.5 });
+  ink(moonG, 'M86,94q3,-2 6,0', { w: 0.6, op: 0.45 });
+  ink(moonG, 'M70,124q3,2 6,0', { w: 0.6, op: 0.4 });
+  ink(moonG, moonD, { closed: true, w: 1.05 });
+  // 행성 고리 (뒤쪽 반)
+  const ringBack = ellipsePts(112, 138, 28, 6.5, -0.36, Math.PI, Math.PI * 2);
+  ink(moonG, ringBack, { w: 0.8, op: 0.55 });
+  const planetD = 'M95,138A17,17 0 1 1 129,138A17,17 0 1 1 95,138Z';
+  mk('path', { d: planetD, fill: C.planet }, moonG);
+  const ph = mk('g', { 'clip-path': clipFor(defs, planetD) }, moonG);
+  for (let i = 0; i < 18; i++) {
+    const a = rand(-0.4, 2), r = rand(3, 17);
+    leaf(ph, 112 + Math.cos(a) * r, 138 + Math.sin(a) * r, rand(4, 7), -0.7, rand(0.45, 0.8), '#C25E63', rand(0.3, 0.55));
+  }
+  ink(moonG, 'M103,132q4,-3 9,-2', { w: 0.6, op: 0.5, color: '#FFFFFF' });
+  ink(moonG, planetD, { closed: true, w: 1 });
+  ink(moonG, ellipsePts(112, 138, 28, 6.5, -0.36, 0, Math.PI), { w: 0.95 });
+  mk('circle', { cx: 86, cy: 120, r: 42, fill: 'transparent' }, moonG);
+
+  // 반짝이와 작은 별
+  R.pStars = mk('g', { 'pointer-events': 'none' }, disp);
+  for (let i = 0; i < 22; i++) {
+    let x, y;
+    do { x = rand(20, 364); y = rand(20, 270); } while ((x > 210 && y < 160) || Math.hypot(x - 90, y - 120) < 50);
+    dots.push({ el: mk('circle', { cx: fx1(x), cy: fx1(y), r: fx1(rand(0.7, 1.4)), fill: '#FFFFFF' }, R.pStars), ph: rand(0, 6.28), sp: rand(1.5, 3.5) });
+  }
+  [[40, 52, 6], [176, 62, 5], [150, 190, 7.5], [196, 120, 4.5], [40, 214, 5], [250, 212, 6.5], [336, 196, 5], [196, 246, 4], [118, 254, 3.5], [292, 238, 3.5]].forEach(([x, y, s]) => {
+    const g = mk('g', {}, R.pStars);
+    mk('path', { d: STAR4(s), fill: '#FFF7D2' }, g);
+    ink(g, STAR4(s), { closed: true, w: 0.55, op: 0.7, step: 1.5 });
+    sparkles.push({ g, x, y, s, ph: rand(0, 6.28), sp: rand(1.4, 2.6) });
+  });
+  R.pMeteor = mk('g', { 'pointer-events': 'none' }, disp);
+
+  // 먼 구름 + 지평선 안개
+  R.pFar = mk('g', { 'pointer-events': 'none' }, disp);
+  mk('rect', { x: -20, y: 258, width: 424, height: 64, fill: 'url(#haze)' }, R.pFar);
+  cloud(defs, R.pFar, -6, 282, 396, 34, 12, { fill: '#E6E0FA', fillOp: 0.92, inkW: 0.6, inkOp: 0.35, hatch: 30, hatchColor: '#A79CDC', hatchOp: 0.3, amp: 3, per: 46 });
+  R.pMist = mk('g', { 'pointer-events': 'none', filter: 'url(#b5)' }, disp);
+  for (let i = 0; i < 3; i++) mists.push({ el: mk('ellipse', { cx: 0, cy: 298 + i * 16, rx: rand(60, 90), ry: rand(6, 9), fill: '#FFFFFF', opacity: 0.38 }, R.pMist), x0: rand(0, 520), v: rand(4, 9) });
+
+  // 가운데 구름
+  R.pMid = mk('g', { 'pointer-events': 'none' }, disp);
+  cloud(defs, R.pMid, 4, 304, 150, 50, 5, { fill: '#F1EEFD', inkW: 0.8, inkOp: 0.6, hatch: 26, hatchColor: '#ACA2E0', hatchOp: 0.4, amp: 4, per: 34 });
+  cloud(defs, R.pMid, 228, 300, 154, 52, 5, { fill: '#F1EEFD', inkW: 0.8, inkOp: 0.6, hatch: 26, hatchColor: '#ACA2E0', hatchOp: 0.4, amp: 4, per: 38 });
+
+  // 구름 바다 (멀수록 흐리게)
+  R.pSea = mk('g', { 'pointer-events': 'none' }, disp);
+  [[318, '#E2DCF7', 0.4, 0.6], [340, '#EAE6FA', 0.5, 0.7], [364, '#F2EFFD', 0.6, 0.8], [390, '#F9F7FF', 0.72, 0.9]].forEach(([y, fill, op, w], i) => {
+    cloud(defs, R.pSea, -12, y, 408, 64, 10 + i, { fill, inkW: w, inkOp: op, hatch: 34, hatchColor: '#ADA3DF', hatchOp: 0.3 + i * 0.05, amp: 2 + i, per: 40 - i * 4 });
+  });
+
+  // 전차 선, 레일, 전차
+  R.pTram = mk('g', {}, disp);
+  const tramStatic = mk('g', { 'pointer-events': 'none' }, R.pTram);
+  ink(tramStatic, 'M-10,264Q190,281 394,260', { w: 0.6, op: 0.55, taper: 0.2 });
+  const depth = y => clamp((y - 300) / 155, 0, 1);
+  for (let k = 1; k <= 16; k++) {
+    const u = k / 16, y = 300 + 155 * Math.pow(u, 1.7);
+    if (y < 352) continue;
+    const s = depth(y), xl = 183 - 73 * s, xr = 197 + 73 * s;
+    ink(tramStatic, [[xl - 5 * s - 2, y], [xr + 5 * s + 2, y + 0.3]], { w: 0.5 + 1.7 * s, op: 0.8, taper: 0.6 });
+  }
+  const rail = s => 0.35 + 1.7 * depth(s[1]);
+  ink(tramStatic, 'M183,300L110,455', { w: 1.1, persp: rail, taper: 0.15 });
+  ink(tramStatic, 'M197,300L270,455', { w: 1.1, persp: rail, taper: 0.15 });
+  R.tram = mk('g', { style: 'cursor:pointer' }, R.pTram);
+  mk('ellipse', { cx: 190, cy: 359, rx: 40, ry: 4.5, fill: C.ink, opacity: 0.22 }, R.tram);
+  ink(R.tram, 'M184,289L190,272.5L196,289', { w: 0.8 });
+  ink(R.tram, 'M181,272.5L199,272.5', { w: 1 });
+  const tramD = 'M156,304C156,296 170,289 190,288C210,289 224,296 224,304L225,348C225,352 222,354 218,354L162,354C158,354 155,352 155,348Z';
+  mk('path', { d: tramD, fill: C.tram }, R.tram);
+  const th = mk('g', { 'clip-path': clipFor(defs, tramD) }, R.tram);
+  for (let i = 0; i < 26; i++) leaf(th, rand(204, 226), rand(292, 354), rand(5, 9), -1.0, rand(0.5, 0.85), '#C9A57A', rand(0.3, 0.55));
+  mk('rect', { x: 155.5, y: 334, width: 69, height: 8, fill: C.band }, R.tram);
+  ink(R.tram, 'M156,334L224,334', { w: 0.7, op: 0.85 });
+  ink(R.tram, 'M156,342L224,342', { w: 0.7, op: 0.85 });
+  [[162, 310], [194, 310]].forEach(([x, y], i) => {
+    const wd = `M${x + 3},${y}L${x + 21},${y}Q${x + 24},${y} ${x + 24},${y + 3}L${x + 24},${y + 16}Q${x + 24},${y + 19} ${x + 21},${y + 19}L${x + 3},${y + 19}Q${x},${y + 19} ${x},${y + 16}L${x},${y + 3}Q${x},${y} ${x + 3},${y}Z`;
+    const g = mk('circle', { cx: x + 12, cy: y + 10, r: 22, fill: 'url(#glow)', 'pointer-events': 'none' }, R.tram);
+    const f = mk('path', { d: wd, fill: C.window }, R.tram);
+    ink(R.tram, wd, { closed: true, w: 0.8 });
+    windows.push({ g, f, ph: i * 9.3 });
+  });
+  mk('path', { d: 'M172,292L208,292L208,301L172,301Z', fill: '#FFF9EC' }, R.tram);
+  ink(R.tram, 'M172,292L208,292L208,301L172,301Z', { closed: true, w: 0.7 });
+  const sign = mk('text', { x: 190, y: 299.2, 'text-anchor': 'middle', 'font-size': 7, 'font-weight': 700, fill: C.ink, 'font-family': 'var(--font)', 'pointer-events': 'none' }, R.tram);
+  sign.textContent = '달빛행';
+  mk('circle', { cx: 190, cy: 347, r: 9, fill: 'url(#glow)', 'pointer-events': 'none' }, R.tram);
+  mk('circle', { cx: 190, cy: 347, r: 3.2, fill: '#FFF3B0' }, R.tram);
+  ink(R.tram, 'M186.8,347A3.2,3.2 0 1 1 193.2,347A3.2,3.2 0 1 1 186.8,347Z', { closed: true, w: 0.6, step: 1 });
+  mk('path', { d: 'M166,354L166,358.5L214,358.5L214,354Z', fill: C.ink, opacity: 0.85 }, R.tram);
+  ink(R.tram, tramD, { closed: true, w: 1.1 });
+  ink(R.tram, 'M190,310L190,329', { w: 0.6, op: 0.6 });
+  mk('rect', { x: 150, y: 268, width: 80, height: 92, fill: 'transparent' }, R.tram);
+
+  // 테두리
+  ink(art, panelD, { closed: true, w: 1.2, step: 3 });
+
+  /* ---------- 힌지 ---------- */
+  const hingeD = 'M42,457L342,457Q350,457 350,465Q350,473 342,473L42,473Q34,473 34,465Q34,457 42,457Z';
+  mk('path', { d: hingeD, fill: '#F1ECF6' }, art);
+  const hh = mk('g', { 'clip-path': clipFor(defs, hingeD) }, art);
+  for (let i = 0; i < 40; i++) leaf(hh, rand(34, 350), rand(466, 474), rand(5, 9), -0.3, rand(0.4, 0.7), '#B7ACCB', rand(0.35, 0.6));
+  ink(art, 'M44,460.5L340,460.5', { w: 0.6, op: 0.9, color: '#FFFFFF' });
+  ink(art, hingeD, { closed: true, w: 1 });
+
+  /* ---------- 가까운 구름 (힌지 위로 흘러넘침) ---------- */
+  const nearClip = clipFor(defs, panelD + 'M12,440L372,440L372,482L12,482Z');
+  R.pNear = mk('g', { 'pointer-events': 'none', 'clip-path': nearClip }, art);
+  const nearO = { fill: C.cloud, inkW: 1, inkOp: 1, hatch: 40, hatchColor: '#B3A9E2', hatchOp: 0.5, amp: 2.5, per: 28 };
+  cloud(defs, R.pNear, 118, 426, 150, 42, 5, nearO);
+  cloud(defs, R.pNear, 16, 414, 142, 52, 5, nearO);
+  cloud(defs, R.pNear, 238, 418, 130, 48, 4, nearO);
+
+  /* ---------- 고양이 ---------- */
+  buildCat(defs, art, C);
+
+  /* ---------- 테이프 ---------- */
+  const tape = (cx, cy, w, h, rot) => {
+    const g = mk('g', { transform: `translate(${cx},${cy}) rotate(${rot})`, 'pointer-events': 'none' }, art);
+    let d = `M${-w / 2},${-h / 2}L${w / 2},${-h / 2}`;
+    for (let i = 1; i <= 6; i++) d += `L${fx1(w / 2 - (i % 2 ? 1.6 : 0))},${fx1(-h / 2 + h * i / 6)}`;
+    d += `L${-w / 2},${h / 2}`;
+    for (let i = 5; i >= 1; i--) d += `L${fx1(-w / 2 + (i % 2 ? 1.6 : 0))},${fx1(-h / 2 + h * i / 6)}`;
+    d += 'Z';
+    mk('path', { d, fill: '#F3DDA9', opacity: 0.78 }, g);
+    for (let i = 0; i < 7; i++) leaf(g, rand(-w / 2 + 3, w / 2 - 8), rand(-h / 2 + 2, h / 2 - 2), rand(5, 8), 0.1, 0.5, '#D7B675', 0.45);
+    ink(g, d, { closed: true, w: 0.55, op: 0.55, step: 1.5 });
+  };
+  tape(192, 11, 64, 15, -3);
+  tape(366, 448, 44, 13, 38);
+
+  /* ---------- 몸체: 버튼부 ---------- */
+  const kp = mk('g', {}, art);
+  // 소프트키 막대
+  ink(kp, 'M44,508L96,508', { w: 3.2, color: C.band, taper: 0.5 });
+  ink(kp, 'M288,508L340,508', { w: 3.2, color: C.band, taper: 0.5 });
+  // 방향키
+  const ringD = 'M142,534A50,50 0 1 1 242,534A50,50 0 1 1 142,534Z';
+  mk('path', { d: ringD, fill: '#FBF8FF' }, kp);
+  const rh = mk('g', { 'clip-path': clipFor(defs, ringD) }, kp);
+  for (let i = 0; i < 30; i++) { const a = rand(0.1, 2.6), r = rand(42, 50); leaf(rh, 192 + Math.cos(a) * r, 534 + Math.sin(a) * r, rand(5, 8), a + 1.5, 0.6, '#BBB0D0', rand(0.35, 0.6)); }
+  ink(kp, ringD, { closed: true, w: 1.1 });
+  ink(kp, 'M186.5,494L192,488.5L197.5,494', { w: 1 });
+  ink(kp, 'M186.5,574L192,579.5L197.5,574', { w: 1 });
+  ink(kp, 'M152,528.5L146.5,534L152,539.5', { w: 1 });
+  ink(kp, 'M232,528.5L237.5,534L232,539.5', { w: 1 });
+  mk('circle', { cx: 192, cy: 534, r: 30, fill: 'url(#glow)', opacity: 0.7, 'pointer-events': 'none' }, kp);
+  const okD = 'M170,534A22,22 0 1 1 214,534A22,22 0 1 1 170,534Z';
+  mk('path', { d: okD, fill: C.window, opacity: 0.92 }, kp);
+  const oh = mk('g', { 'clip-path': clipFor(defs, okD) }, kp);
+  for (let i = 0; i < 12; i++) { const a = rand(0, 2.4), r = rand(8, 22); leaf(oh, 192 + Math.cos(a) * r, 534 + Math.sin(a) * r, rand(4, 7), -0.7, 0.6, '#C98F22', rand(0.3, 0.5)); }
+  ink(kp, okD, { closed: true, w: 1 });
+  // 통화·종료
+  ink(kp, 'M60,543Q61,561 80,563', { w: 3.6, color: '#3E9C66', taper: 0.25 });
+  ink(kp, 'M56,546L64,539', { w: 3, color: '#3E9C66', taper: 0.3 });
+  ink(kp, 'M77,567L84,559', { w: 3, color: '#3E9C66', taper: 0.3 });
+  ink(kp, 'M300,557Q314,546 328,557', { w: 3.6, color: C.band, taper: 0.25 });
+  ink(kp, 'M297,553L302,561', { w: 3, color: C.band, taper: 0.3 });
+  ink(kp, 'M331,553L326,561', { w: 3, color: C.band, taper: 0.3 });
+  // 낙서
+  ink(kp, STAR4(5).replace(/(-?\d+\.?\d*),(-?\d+\.?\d*)/g, (m, a, b) => `${fx1(+a + 124)},${fx1(+b + 577)}`), { closed: true, w: 0.6, op: 0.7, step: 1.2 });
+  ink(kp, 'M258,572A6,6 0 1 0 266,581A4.6,4.6 0 1 1 258,572Z', { closed: true, w: 0.6, op: 0.7, step: 1.2 });
+  ink(kp, 'M24,575q3,-4 6,0t6,0', { w: 0.6, op: 0.55 });
+  ink(kp, 'M348,575q3,-4 6,0t6,0', { w: 0.6, op: 0.55 });
+  // 구분선
+  ink(kp, 'M28,592L356,591', { w: 0.8, op: 0.45, taper: 0.4 });
+  // 숫자 키
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+    const x = 22 + c * 114, y = 598 + r * 54, x1 = x + 6, x2 = x + 108, y1 = y + 6, y2 = y + 49;
+    const kd = `M${x1 + 14},${y1}L${x2 - 14},${y1}Q${x2},${y1} ${x2},${y1 + 14}L${x2},${y2 - 14}Q${x2},${y2} ${x2 - 14},${y2}L${x1 + 14},${y2}Q${x1},${y2} ${x1},${y2 - 14}L${x1},${y1 + 14}Q${x1},${y1} ${x1 + 14},${y1}Z`;
+    mk('path', { d: kd, fill: C.ink, opacity: 0.1, transform: 'translate(1.5,2.5)' }, kp);
+    mk('path', { d: kd, fill: '#FFFFFF' }, kp);
+    const kh = mk('g', { 'clip-path': clipFor(defs, kd) }, kp);
+    for (let i = 0; i < 9; i++) leaf(kh, rand(x1 + 6, x2 - 6), rand(y2 - 9, y2), rand(5, 9), -0.45, rand(0.4, 0.7), '#C3B8D6', rand(0.35, 0.6));
+    ink(kp, kd, { closed: true, w: 0.95, step: 3 });
+  }
+
+  // 폰줄 랜턴 (힌지 오른쪽 끝)
+  R.lantern = mk('g', { 'pointer-events': 'none' }, art);
+  ink(R.lantern, 'M362,467Q363,478 362,489', { w: 0.7, op: 0.9 });
+  mk('circle', { cx: 362, cy: 497, r: 16, fill: 'url(#glow)' }, R.lantern);
+  const lanD = 'M357,490L367,490Q369,497 367,504L357,504Q355,497 357,490Z';
+  mk('path', { d: lanD, fill: C.window }, R.lantern);
+  mk('path', { d: 'M357.5,488L366.5,488L366.5,490.5L357.5,490.5Z', fill: C.band }, R.lantern);
+  mk('path', { d: 'M357.5,503.5L366.5,503.5L366.5,506L357.5,506Z', fill: C.band }, R.lantern);
+  ink(R.lantern, lanD, { closed: true, w: 0.7, step: 1 });
+  ink(R.lantern, 'M362,506L362,511', { w: 0.6 });
+
+  /* ---------- 글자 (떨림 없음) ---------- */
+  const tx = mk('g', { 'pointer-events': 'none', 'font-family': 'var(--font)' }, svg);
+  const sText = (x, y, s, txt, o = {}) => { const t = mk('text', Object.assign({ x, y, 'font-size': s, fill: '#FFFFFF', stroke: C.ink, 'stroke-width': 2.6, 'stroke-opacity': 0.45, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, o), tx); t.textContent = txt; return t; };
+  // 상태 표시줄
+  const st = mk('g', {}, tx);
+  mk('rect', { x: 24.5, y: 22.5, width: 18, height: 9, rx: 1.5, fill: 'none', stroke: '#FFFFFF', 'stroke-width': 1.3 }, st);
+  for (let i = 0; i < 4; i++) mk('rect', { x: 26.5 + i * 3.8, y: 24.5, width: 2.6, height: 5, fill: '#FFFFFF' }, st);
+  mk('rect', { x: 43, y: 25, width: 1.8, height: 4, fill: '#FFFFFF' }, st);
+  sText(49, 31, 11, '87%', { opacity: 0.9 });
+  R.statusTime = sText(358, 32, 12, '', { 'text-anchor': 'end', 'font-weight': 700 });
+  sText(358, 66, 15, '폴더폰 모드', { 'text-anchor': 'end', 'font-weight': 700 });
+  R.date = sText(358, 85, 12, '', { 'text-anchor': 'end', opacity: 0.92 });
+  R.clock = sText(358, 146, 52, '', { 'text-anchor': 'end', 'font-weight': 300, 'stroke-width': 3.5 });
+  R.ampm = sText(300, 146, 15, '', { 'text-anchor': 'end', opacity: 0.92 });
+  // 무료 해제 칩
+  const chipD = 'M273,410L355,410Q361,410 361,416L361,424Q361,430 355,430L273,430Q267,430 267,424L267,416Q267,410 273,410Z';
+  mk('path', { d: chipD, fill: '#FFFFFF', opacity: 0.94 }, art);
+  ink(art, chipD, { closed: true, w: 0.75, step: 2 });
+  const chipT = mk('text', { x: 314, y: 423.8, 'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 600, fill: C.ink }, tx); chipT.textContent = '무료 해제 3회 남음';
+  // 버튼부 글자
+  const kText = (x, y, s, txt, o = {}) => { const t = mk('text', Object.assign({ x, y, 'font-size': s, fill: C.ink, 'text-anchor': 'middle' }, o), tx); t.textContent = txt; return t; };
+  kText(70, 499, 14, '해제', { 'font-weight': 700 });
+  kText(314, 499, 14, '설정', { 'font-weight': 700 });
+  kText(192, 539, 13, '메뉴', { 'font-weight': 700 });
+  const subs = ['ㅣ', '·', 'ㅡ', 'ㄱㅋ', 'ㄴㄹ', 'ㄷㅌ', 'ㅂㅍ', 'ㅅㅎ', 'ㅈㅊ', '', 'ㅇㅁ', ''];
+  const nums = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
+  nums.forEach((n, i) => {
+    const r = Math.floor(i / 3), c = i % 3, x = 22 + c * 114, y = 598 + r * 54;
+    const hasSub = subs[i] !== '';
+    kText(x + (hasSub ? 44 : 57), y + 35, 22, n, { 'font-weight': 600, 'text-anchor': hasSub ? 'end' : 'middle' });
+    if (hasSub) kText(x + 50, y + 33, 11, subs[i], { 'text-anchor': 'start', opacity: 0.6 });
+  });
+
+  // 종이 결 (맨 위, 아주 옅게)
+  mk('rect', { x: 0, y: 0, width: 384, height: 832, filter: 'url(#grain)', 'pointer-events': 'none', opacity: 0.55 }, svg);
+  // 효과 (하트, 반짝이, 김)
+  R.fx = mk('g', { 'pointer-events': 'none', 'clip-path': clipFor(defs, panelD) }, svg);
+
+  // 클릭
+  R.skyRect.addEventListener('click', e => { const p = toSvg(e); burst(p.x, p.y, 6, 0.7); spawnMeteor(p.x + 40, p.y - 34); });
+  R.moonG.addEventListener('click', () => burst(86, 120, 12, 1));
+  R.tram.addEventListener('click', () => { tramShake = 0.55; for (let i = 0; i < 3; i++) steam(i * 0.22); });
+  R.catHit.addEventListener('pointerenter', () => { catHover = true; earTimer = Math.min(earTimer, 0.05); });
+  R.catHit.addEventListener('pointerleave', () => { catHover = false; });
+  R.catHit.addEventListener('click', () => { if (jumpP < 0) { jumpP = 0; for (let i = 0; i < 4; i++) heart(i * 0.12); } });
+
+  updateClock();
+  renderDyn();
+}
+
+/* =================== 고양이 =================== */
+// 사용자 참고 그림을 따라 그리지 않고 새로 그린 "엎드린 고양이" (얇은 펜 선)
+const CAT_X = 24, CAT_Y = 344;
+let catGeo = { tail: [], tailFill: '', scarf: [], scarfFill: '' };
+function buildCat(defs, art, C) {
+  R.pCat = mk('g', {}, art);
+  R.cat = mk('g', {}, R.pCat);
+  R.tailFill = mk('path', { fill: C.cat }, null);
+  R.catBody = mk('g', {}, R.cat);
+  const bodyD = 'M18,79C6,76 4,58 12,46C20,32 38,24 58,24C72,24 82,26 92,33L101,56C105,66 104,74 98,79Z';
+  mk('path', { d: bodyD, fill: C.cat }, R.catBody);
+  const bh = mk('g', { 'clip-path': clipFor(defs, bodyD) }, R.catBody);
+  for (let i = 0; i < 34; i++) leaf(bh, rand(16, 86), rand(25, 44), rand(5, 10), -0.25 + rand(-0.2, 0.2), rand(0.6, 1.1), C.ginger, rand(0.35, 0.6));
+  for (let i = 0; i < 14; i++) leaf(bh, rand(30, 96), rand(64, 79), rand(5, 8), -0.4, 0.55, '#C9BBD6', rand(0.35, 0.55));
+  ink(R.catBody, 'M14,71C6,59 10,44 22,36C34,28 50,24 66,25C76,26 85,29 92,33', { w: 1.1 });
+  ink(R.catBody, 'M26,79.5C46,80.5 70,80.5 88,79.5', { w: 0.85, op: 0.9 });
+  ink(R.catBody, 'M40,79C35,67 43,56 57,57C64,59 67,67 63,77', { w: 0.9 });
+  ink(R.catBody, 'M93,52C99,58 102,67 99,76', { w: 0.85 });
+  ink(R.catBody, 'M74,80C75,73 88,71 96,74C101,77 99,81 92,81', { w: 0.85 });
+  ink(R.catBody, 'M86,77.5L86,80.5', { w: 0.6, taper: 0.5 });
+  // 목도리 꼬리 (바람에 날림)
+  R.scarfFill = mk('path', { fill: C.band }, R.catBody);
+  ink(R.catBody, () => catGeo.scarf, { w: 0.85, noRet: true });
+  // 머리
+  R.head = mk('g', {}, R.cat);
+  R.earL = mk('g', {}, R.head);
+  mk('path', { d: 'M86,31L88,8L99,18Z', fill: C.cat }, R.earL);
+  leaf(R.earL, 89, 25, 8, -1.45, 1.2, C.planet, 0.5);
+  ink(R.earL, 'M86,31C86,22 87,14 88,8C92,11 95,14 99,18', { w: 0.95 });
+  R.earR = mk('g', {}, R.head);
+  mk('path', { d: 'M107,18L119,6L121,27Z', fill: C.cat }, R.earR);
+  leaf(R.earR, 117, 22, 8, -1.2, 1.1, C.planet, 0.5);
+  ink(R.earR, 'M107,18C111,13 116,9 119,6C121,12 121,19 121,27', { w: 0.95 });
+  const headD = 'M84,37C82,25 90,16 102,16C114,16 122,24 121,36C120,47 111,53 101,53C91,53 85,46 84,37Z';
+  mk('path', { d: headD, fill: C.cat }, R.head);
+  const hh = mk('g', { 'clip-path': clipFor(defs, headD) }, R.head);
+  for (let i = 0; i < 10; i++) leaf(hh, rand(90, 112), rand(17, 24), rand(4, 7), -0.2, 0.7, C.ginger, rand(0.4, 0.6));
+  ink(R.head, 'M86,29C82,39 87,51 100,53C112,54 121,46 121,35C121,31 120.5,28 120,26', { w: 1.05 });
+  ink(R.head, 'M96,18.5C100,16.5 105,16.3 109,17.3', { w: 0.9 });
+  mk('ellipse', { cx: 116, cy: 43, rx: 4, ry: 2.4, fill: C.planet, opacity: 0.45 }, R.head);
+  R.eyes = mk('g', {}, R.head);
+  R.eyeL = mk('ellipse', { cx: 98, cy: 33, rx: 2.1, ry: 2.7, fill: C.ink }, R.eyes);
+  R.eyeR = mk('ellipse', { cx: 111, cy: 32.5, rx: 2.1, ry: 2.7, fill: C.ink }, R.eyes);
+  mk('path', { d: 'M104.5,38.5L108.5,38.5L106.5,40.8Z', fill: '#E58A8A' }, R.head);
+  ink(R.head, 'M102.5,42.5Q104.5,44.6 106.5,41.4Q108.5,44.6 110.5,42.5', { w: 0.6, taper: 0.4 });
+  ink(R.head, 'M116,40L129,38', { w: 0.45, op: 0.8 });
+  ink(R.head, 'M116,43L129,44.5', { w: 0.45, op: 0.8 });
+  ink(R.head, 'M93,41L85,40', { w: 0.45, op: 0.7 });
+  // 목도리 띠
+  const bandD = 'M86,46C94,52 108,54 119,47L118,54C108,61 94,59 87,53Z';
+  mk('path', { d: bandD, fill: C.band }, R.cat);
+  ink(R.cat, 'M86,46C94,52 108,54 119,47', { w: 0.8 });
+  ink(R.cat, 'M87,53C94,59 108,61 118,54', { w: 0.8 });
+  mk('circle', { cx: 92, cy: 52, r: 3, fill: C.band }, R.cat);
+  // 꼬리 (앞쪽)
+  R.cat.appendChild(R.tailFill);
+  ink(R.cat, () => catGeo.tail, { w: 1, noRet: true });
+  R.catHit = mk('rect', { x: -4, y: 0, width: 136, height: 100, fill: 'transparent', style: 'cursor:pointer' }, R.pCat);
+}
+function ribbon(x, y, n, L, thetaFn, widthFn) {
+  const c = []; let px = x, py = y;
+  for (let i = 0; i <= n; i++) { const s = i / n; c.push([px, py, s]); const th = thetaFn(s); px += Math.cos(th) * L / n; py += Math.sin(th) * L / n; }
+  const left = [], right = [];
+  for (let i = 0; i <= n; i++) {
+    const a = c[Math.max(0, i - 1)], b = c[Math.min(n, i + 1)];
+    let tx = b[0] - a[0], ty = b[1] - a[1]; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+    const w = widthFn(c[i][2]) / 2;
+    left.push([c[i][0] - ty * w, c[i][1] + tx * w]); right.push([c[i][0] + ty * w, c[i][1] - tx * w]);
+  }
+  const outline = left.concat(right.slice().reverse());
+  return { outline, fill: 'M' + outline.map(P).join('L') + 'Z' };
+}
+
+/* =================== 움직임 상태 =================== */
+let T = 0, energy = 1, activeUntil = 0, lastFrame = performance.now(), lastWob = 0;
+let par = { x: 0, y: 0, tx: 0, ty: 0 };
+let pointer = null, pointerAt = -1e9;
+let catHover = false, jumpP = -1, earTimer = 3, earP = -1, earSide = 0, blinkTimer = 2, blinkP = -1, blinkTwice = false;
+let headA = -8, eyeDX = 0, eyeDY = 0, tramShake = 0, lanternKick = 0, nextMeteor = 4;
+let meteors = [], parts = [];
+const stateEl = document.getElementById('state');
+
+function wake() { activeUntil = performance.now() + CONFIG.restAfter * 1000; }
+function toSvg(e) { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const m = svg.getScreenCTM(); return m ? pt.matrixTransform(m.inverse()) : { x: 0, y: 0 }; }
+svg.addEventListener('pointermove', e => { const p = toSvg(e); pointer = p; pointerAt = performance.now(); par.tx = clamp((p.x - 192) / 192, -1, 1); par.ty = clamp((p.y - 230) / 230, -1, 1); });
+svg.addEventListener('pointerleave', () => { par.tx = 0; par.ty = 0; pointer = null; });
+svg.addEventListener('pointerdown', () => { wake(); lanternKick = 1; });
+
+function spawnMeteor(x, y) {
+  if (reduce) return;
+  const g = mk('g', {}, R.pMeteor);
+  const tail = mk('path', { fill: '#FFF4C2', stroke: CONFIG.colors.ink, 'stroke-width': 0.6, 'stroke-opacity': 0.55 }, g);
+  const head = mk('path', { d: STAR4(4.5), fill: '#FFFBE6', stroke: CONFIG.colors.ink, 'stroke-width': 0.5 }, g);
+  meteors.push({ g, tail, head, x: clamp(x, 40, 372), y: clamp(y, 18, 200), vx: -190, vy: 105, age: 0, life: 1.1 });
+}
+function burst(x, y, n, size) {
+  if (reduce) return;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + rand(-0.2, 0.2), sp = rand(40, 90) * size;
+    const el = mk('path', { d: STAR4(rand(2.5, 4.5) * size), fill: '#FFF3C4', stroke: CONFIG.colors.ink, 'stroke-width': 0.5 }, R.fx);
+    parts.push({ el, x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: rand(0, 90), vr: rand(-200, 200), age: 0, life: 0.9, kind: 'spark' });
+  }
+}
+function steam(delay) {
+  if (reduce) return;
+  const el = mk('circle', { r: 3, fill: 'none', stroke: '#FFFFFF', 'stroke-width': 1.6, opacity: 0 }, R.fx);
+  parts.push({ el, x: 190 + rand(-3, 3), y: 276, vx: rand(-6, 6), vy: -26, age: -delay, life: 1.3, kind: 'ring' });
+}
+function heart(delay) {
+  if (reduce) return;
+  const el = mk('path', { d: 'M0,2.5C-7,-3 -4.5,-9 0,-5.5C4.5,-9 7,-3 0,2.5Z', fill: CONFIG.colors.planet, stroke: CONFIG.colors.ink, 'stroke-width': 0.8, opacity: 0 }, R.fx);
+  parts.push({ el, x: CAT_X + 104 + rand(-8, 8), y: CAT_Y + 8, vx: rand(-10, 10), vy: -34, age: -delay, life: 1.5, kind: 'heart', ph: rand(0, 6) });
+}
+
+function updateClock() {
+  const d = new Date(), h = d.getHours(), m = String(d.getMinutes()).padStart(2, '0');
+  const ap = h < 12 ? '오전' : '오후', h12 = (h % 12) || 12;
+  R.statusTime.textContent = `${ap} ${h12}:${m}`;
+  R.date.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
+  R.clock.textContent = `${h12}:${m}`;
+  R.ampm.textContent = ap;
+  let w = 0; try { w = R.clock.getComputedTextLength(); } catch (_) { w = 110; }
+  R.ampm.setAttribute('x', fx1(358 - (w || 110) - 6));
+}
+setInterval(() => R.clock && updateClock(), 15000);
+
+function renderDyn() { for (const s of dyn) drawStroke(s, s.fn()); }
+function rerenderStatic() { for (const s of strokes) drawStroke(s, s.base); }
+
+/* =================== 프레임 =================== */
+function frame(now) {
+  requestAnimationFrame(frame);
+  const resting = reduce || (CONFIG.restAfter > 0 && now > activeUntil);
+  const calm = resting && energy < 0.02 && !meteors.length && !parts.length && jumpP < 0;
+  const fps = calm ? 8 : Math.min(30, CONFIG.fps);
+  const dtR = (now - lastFrame) / 1000;
+  if (dtR < 1 / fps - 0.002) return;
+  lastFrame = now;
+  const dtc = Math.min(dtR, 0.1);
+  energy += ((resting ? 0 : 1) - energy) * lerpK(dtc, 1.6);
+  const e = reduce ? 0 : energy;
+  const dt = dtc * CONFIG.speed * (reduce ? 0 : (0.35 + 0.65 * e));
+  T += dt;
+  stateEl.innerHTML = reduce ? '움직임 줄이기 설정이 켜져 있어 <b>멈춘 그림</b>으로 보여요'
+    : resting ? (energy < 0.05 ? '<b>쉬는 중</b> · 화면을 누르면 다시 움직여요' : '<b>쉬는 중으로 바뀌는 중</b>')
+    : CONFIG.restAfter > 0 ? `움직임 <b>켜짐</b> · ${Math.ceil((activeUntil - now) / 1000)}초 뒤 쉬어요` : '움직임 <b>계속 켜짐</b>';
+
+  // 시차
+  par.x += (par.tx - par.x) * lerpK(dtc, 4); par.y += (par.ty - par.y) * lerpK(dtc, 4);
+  const pk = CONFIG.parallax * (reduce ? 0 : 1);
+  const L = (g, k, extraX = 0, extraY = 0) => g.setAttribute('transform', `translate(${fx1(-par.x * pk * k + extraX)},${fx1(-par.y * pk * k * 0.5 + extraY)})`);
+  L(R.pSky, 0.15); L(R.pMoon, 0.4); L(R.pStars, 0.3); L(R.pMeteor, 0.3); L(R.pFar, 0.7); L(R.pMist, 0.9); L(R.pMid, 1.2); L(R.pSea, 1.4);
+  // 전차: 흔들림 + 클릭 떨림
+  tramShake = Math.max(0, tramShake - dtc);
+  const shakeX = tramShake > 0 ? Math.sin(now / 1000 * 60) * 2.2 * (tramShake / 0.55) : 0;
+  L(R.pTram, 1.6);
+  R.tram.setAttribute('transform', `translate(${fx1(shakeX)},${fx1(Math.sin(T * 3) * 0.7 * e)})`);
+  windows.forEach(w => {
+    const fl = 0.78 + 0.22 * noise1(T * 4 + w.ph) - (noise1(T * 1.3 + w.ph * 3) > 0.86 ? 0.25 : 0);
+    w.f.setAttribute('opacity', fx1(fl * 10) / 10); w.g.setAttribute('opacity', fx1((0.5 + 0.5 * fl) * 10) / 10);
+  });
+  L(R.pNear, 1.6); L(R.pCat, 1.6);
+  // 달무리
+  R.halo.setAttribute('r', fx1(48 + 4 * Math.sin(T * 1.3)));
+  R.halo.setAttribute('opacity', fx1((0.75 + 0.25 * Math.sin(T * 1.3)) * 100) / 100);
+  // 별
+  const tw = 0.35 + 0.65 * e;
+  sparkles.forEach(s => { const k = 1 + 0.28 * Math.sin(T * s.sp + s.ph) * tw; s.g.setAttribute('transform', `translate(${s.x},${s.y}) scale(${fx1(k * 100) / 100}) rotate(${fx1(Math.sin(T * 0.7 + s.ph) * 8 * tw)})`); s.g.setAttribute('opacity', fx1((0.75 + 0.25 * Math.sin(T * s.sp + s.ph)) * 100) / 100); });
+  dots.forEach(d => d.el.setAttribute('opacity', fx1((0.45 + 0.45 * Math.sin(T * d.sp + d.ph)) * 100) / 100));
+  // 구름
+  clouds.forEach(c => c.g.setAttribute('transform', `translate(${fx1(Math.sin(T * 6.283 / c.per + c.ph) * c.amp * (0.3 + 0.7 * e))},0)`));
+  mists.forEach(m => { const x = ((m.x0 + T * m.v) % 560) - 90; m.el.setAttribute('cx', fx1(x)); });
+  // 랜턴
+  lanternKick = Math.max(0, lanternKick - dtc * 0.8);
+  R.lantern.setAttribute('transform', `rotate(${fx1((7 * Math.sin(T * 1.8) + 10 * lanternKick * Math.sin(T * 5)) * e)},362,467)`);
+
+  // 별똥별
+  if (CONFIG.autoMeteor && !reduce && e > 0.5 && T > nextMeteor) { spawnMeteor(rand(250, 350), rand(24, 70)); nextMeteor = T + rand(7, 13); }
+  meteors = meteors.filter(m => {
+    m.age += dtc * CONFIG.speed;
+    m.x += m.vx * dtc * CONFIG.speed; m.y += m.vy * dtc * CONFIG.speed;
+    const p = m.age / m.life, fade = p < 0.15 ? p / 0.15 : 1 - Math.max(0, (p - 0.6) / 0.4);
+    const len = 70 * Math.min(1, m.age * 4), sp = Math.hypot(m.vx, m.vy), dx = -m.vx / sp, dy = -m.vy / sp, nx = -dy, ny = dx;
+    const lf = [], rt = [];
+    for (let i = 0; i <= 12; i++) { const t = i / 12, w = 3.2 * Math.pow(1 - t, 1.3) + 0.15, x = m.x + dx * len * t, y = m.y + dy * len * t; lf.push([x + nx * w / 2, y + ny * w / 2]); rt.push([x - nx * w / 2, y - ny * w / 2]); }
+    m.tail.setAttribute('d', 'M' + lf.map(P).join('L') + 'L' + rt.reverse().map(P).join('L') + 'Z');
+    m.head.setAttribute('transform', `translate(${fx1(m.x)},${fx1(m.y)}) rotate(${fx1(m.age * 200)})`);
+    m.g.setAttribute('opacity', fx1(clamp(fade, 0, 1) * 100) / 100);
+    if (p >= 1) { m.g.remove(); return false; }
+    return true;
+  });
+  // 효과 조각
+  parts = parts.filter(q => {
+    q.age += dtc;
+    if (q.age < 0) return true;
+    const p = q.age / q.life;
+    if (q.kind === 'spark') { q.vx *= 0.94; q.vy = q.vy * 0.94 + 18 * dtc; q.rot += q.vr * dtc; }
+    q.x += q.vx * dtc; q.y += q.vy * dtc;
+    if (q.kind === 'ring') { q.el.setAttribute('cx', fx1(q.x)); q.el.setAttribute('cy', fx1(q.y)); q.el.setAttribute('r', fx1(3 + p * 12)); q.el.setAttribute('opacity', fx1((1 - p) * 90) / 100); }
+    else if (q.kind === 'heart') { q.el.setAttribute('transform', `translate(${fx1(q.x + Math.sin(q.age * 5 + q.ph) * 4)},${fx1(q.y)}) scale(${fx1((0.6 + 0.6 * Math.min(1, p * 4)) * 100) / 100})`); q.el.setAttribute('opacity', fx1((1 - p) * 100) / 100); }
+    else { q.el.setAttribute('transform', `translate(${fx1(q.x)},${fx1(q.y)}) rotate(${fx1(q.rot)})`); q.el.setAttribute('opacity', fx1((1 - p) * 100) / 100); }
+    if (p >= 1) { q.el.remove(); return false; }
+    return true;
+  });
+
+  updateCat(dtc, now, e);
+  renderDyn();
+
+  // 선 떨림 (초당 wobbleFps번)
+  if (CONFIG.wobble > 0 && e > 0.05 && now - lastWob > 1000 / CONFIG.wobbleFps) {
+    lastWob = now; wobTick = (wobTick + 1) % 1000;
+    turb.setAttribute('seed', String(wobTick % 97 + 1));
+    rerenderStatic();
+  }
+}
+
+function updateCat(dtc, now, e) {
+  // 숨쉬기
+  const breath = Math.sin(T * 2.3) * e;
+  R.catBody.setAttribute('transform', `translate(0,79) scale(1,${(1 + 0.02 * breath).toFixed(4)}) translate(0,-79)`);
+  // 바라볼 곳: 포인터 → 별똥별 → 기본(오른쪽 위 하늘)
+  let tgt = { x: 300, y: 90 };
+  if (pointer && now - pointerAt < 4000) tgt = pointer; else if (meteors.length) tgt = { x: meteors[0].x, y: meteors[0].y };
+  const hx = CAT_X + 104, hy = CAT_Y + 34;
+  const ang = Math.atan2(tgt.y - hy, tgt.x - hx) * 180 / Math.PI;
+  const want = clamp(ang * 0.32, -22, 10) * (0.25 + 0.75 * e) - 4;
+  headA += (want - headA) * lerpK(dtc, 5);
+  const dist = Math.hypot(tgt.x - hx, tgt.y - hy) || 1;
+  eyeDX += ((tgt.x - hx) / dist * 1.4 - eyeDX) * lerpK(dtc, 8);
+  eyeDY += ((tgt.y - hy) / dist * 1.2 - eyeDY) * lerpK(dtc, 8);
+  R.head.setAttribute('transform', `translate(0,${fx1(-0.6 * breath)}) rotate(${fx1(headA)},92,46)`);
+  // 눈 깜빡임 (가끔 두 번)
+  blinkTimer -= dtc;
+  if (blinkTimer <= 0 && blinkP < 0) { blinkP = 0; blinkTwice = rng() < 0.25; blinkTimer = rand(2.4, 6); }
+  let lid = 0;
+  if (blinkP >= 0) {
+    blinkP += dtc / 0.15;
+    lid = Math.sin(Math.min(1, blinkP) * Math.PI);
+    if (blinkP >= 1) { if (blinkTwice) { blinkTwice = false; blinkP = -0.6; } else blinkP = -1; }
+  } else if (blinkP < -0.5 && blinkP > -1) { blinkP += dtc / 0.15; if (blinkP >= -0.01) blinkP = 0; }
+  const ry = fx1(2.7 * (1 - 0.88 * lid) * 10) / 10;
+  R.eyeL.setAttribute('ry', ry); R.eyeR.setAttribute('ry', ry);
+  R.eyes.setAttribute('transform', `translate(${fx1(eyeDX)},${fx1(eyeDY)})`);
+  // 귀 쫑긋
+  earTimer -= dtc * (catHover ? 3 : 1);
+  if (earTimer <= 0 && earP < 0 && e > 0.2) { earP = 0; earSide = rng() < 0.5 ? 0 : 1; earTimer = rand(3, 8); }
+  let earA = 0;
+  if (earP >= 0) { earP += dtc / 0.22; earA = Math.sin(Math.min(1, earP) * Math.PI) * 16; if (earP >= 1) earP = -1; }
+  R.earL.setAttribute('transform', `rotate(${fx1(earSide === 0 ? -earA : 0)},90,28)`);
+  R.earR.setAttribute('transform', `rotate(${fx1(earSide === 1 ? earA : 0)},112,22)`);
+  // 점프
+  let jy = 0;
+  if (jumpP >= 0) { jumpP += dtc / 0.6; jy = -20 * Math.sin(Math.min(1, jumpP) * Math.PI); if (jumpP >= 1) jumpP = -1; }
+  R.cat.setAttribute('transform', `translate(${CAT_X},${fx1(CAT_Y + jy)})`);
+  // 꼬리: 물결이 끝으로 전해지는 리본
+  const tw = catHover ? 6.5 : 2.2, ta = (catHover ? 0.34 : 0.22) * (0.15 + 0.85 * e);
+  const tail = ribbon(20, 66, 22, 84,
+    s => (165 * Math.pow(1 - s, 3)) * Math.PI / 180 - 0.1 * s + ta * Math.sin(T * tw - 5 * s) * Math.pow(s, 1.3),
+    s => 7.2 * (1 - 0.45 * s) * Math.sqrt(Math.min(1, (1 - s) * 7)) + 0.6);
+  catGeo.tail = tail.outline; R.tailFill.setAttribute('d', tail.fill);
+  // 목도리 꼬리: 바람에 펄럭
+  const sf = ribbon(91, 52, 10, 27,
+    s => (186 - 18 * s) * Math.PI / 180 + (0.18 + 0.4 * e) * Math.sin(T * 8 - 6 * s) * s,
+    s => 5.6 - 1.6 * s);
+  catGeo.scarf = sf.outline; R.scarfFill.setAttribute('d', sf.fill);
+}
+
+/* =================== 조절판 =================== */
+const SLIDERS = [
+  ['lineWidth', '선 굵기', 0.3, 3, 0.05], ['taper', '끝 가늘기', 0, 0.5, 0.01], ['retrace', '겹쳐 긋기', 0, 1, 0.01],
+  ['wobble', '선 떨림', 0, 4, 0.1], ['wobbleFps', '떨림 횟수/초', 1, 12, 1], ['speed', '속도', 0, 3, 0.05],
+  ['fps', '최대 fps', 5, 30, 1], ['parallax', '시차', 0, 12, 0.5], ['restAfter', '쉬기까지(초, 0=계속)', 0, 30, 1],
+];
+function buildControls() {
+  const box = document.getElementById('controls'); box.textContent = '';
+  SLIDERS.forEach(([k, label, mn, mx, st]) => {
+    const row = document.createElement('div'); row.className = 'ctl';
+    const id = 'cfg-' + k;
+    row.innerHTML = `<label for="${id}">${label}</label><input type="range" id="${id}" min="${mn}" max="${mx}" step="${st}" value="${CONFIG[k]}"><output for="${id}">${CONFIG[k]}</output>`;
+    const inp = row.querySelector('input'), out = row.querySelector('output');
+    inp.addEventListener('input', () => {
+      CONFIG[k] = +inp.value; out.textContent = inp.value; wake();
+      if (k === 'wobble') { R.disp.setAttribute('scale', CONFIG.wobble); document.getElementById('art').setAttribute('filter', CONFIG.wobble > 0 ? 'url(#wob)' : 'none'); }
+      if (['lineWidth', 'taper', 'retrace', 'wobble'].includes(k)) { rerenderStatic(); renderDyn(); }
+    });
+    box.appendChild(row);
+  });
+  const am = document.getElementById('autoMeteor'); am.checked = CONFIG.autoMeteor;
+  am.onchange = () => { CONFIG.autoMeteor = am.checked; wake(); };
+  const cbox = document.getElementById('colors'); cbox.textContent = '';
+  Object.keys(CONFIG.colors).forEach(k => {
+    const lab = document.createElement('label'); const id = 'col-' + k;
+    lab.innerHTML = `<input type="color" id="${id}" value="${CONFIG.colors[k]}"> ${COLOR_LABELS[k]}`;
+    lab.htmlFor = id;
+    lab.querySelector('input').addEventListener('change', ev => { CONFIG.colors[k] = ev.target.value; build(); wake(); });
+    cbox.appendChild(lab);
+  });
+}
+document.getElementById('reset').addEventListener('click', () => {
+  const fresh = JSON.parse(JSON.stringify(DEFAULTS));
+  Object.assign(CONFIG, fresh); CONFIG.colors = fresh.colors;
+  buildControls(); build(); wake();
+});
+try { if (localStorage.getItem('moonPanelOpen') === '1') document.getElementById('panel').open = true; } catch (_) {}
+document.getElementById('panel').addEventListener('toggle', ev => { try { localStorage.setItem('moonPanelOpen', ev.target.open ? '1' : '0'); } catch (_) {} });
+
+buildControls();
+build();
+wake();
+requestAnimationFrame(frame);
+</script>
